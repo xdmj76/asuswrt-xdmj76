@@ -30,7 +30,9 @@ helpcontent[1] = new Array("",
 						   "<#WLANConfig11b_Channel_itemdesc#>",
 						   "<#WLANConfig11b_x_BRApply_itemdesc#>",
 						   "<#WLANConfig11b_x_Mode_itemdesc5#>",
-							 "<#WLANConfig11b_x_Mode_itemdescAC#>");
+							"<#WLANConfig11b_x_Mode_itemdescAC#>",
+							"<#WLANConfig11b_x_Mode_itemdescAC2#>",
+							"<#WLANConfig11b_x_Mode_itemdescAC3#>");
 helpcontent[2] = new Array("",
 						   "<#WLANAuthentication11a_ExAuthDBIPAddr_itemdesc#>",
 						   "<#WLANAuthentication11a_ExAuthDBPortNumber_itemdesc#>",
@@ -210,8 +212,8 @@ helpcontent[20] = new Array("",
 							"<#min_bound_desc#>",
 							"<#max_bound_desc#>",
 							"<#bound_zero_desc#>",
-							Untranslated.intelligence_type_desc,
-							Untranslated.traditional_type_desc);
+							"<#EzQoS_type_adaptive_desc#>",
+							"<#EzQoS_type_traditional_desc#>");
 // HSDPA
 helpcontent[21] = new Array("",
 							"<#HSDPAConfig_hsdpa_mode_itemdesc#>",
@@ -261,7 +263,7 @@ helpcontent[25] = new Array("",
 							"This item configures Rx AGC(Auto Gain Control) GAIN for VDSL, if tweak the Stability Adjustment (VDSL) setting still could not get desired downstream speed, then could try to set Rx AGC GAIN Adjustment to High Performance mode. However if your VDSL connection is unstable and has some CRC then could set to Stable mode.",
 							"This item allows you to control whether to Enable/Disable UPBO(Upstream Power Back Off) for VDSL. DSLAM could use UPBO to reduce the Tx Power of your xDSL modem router, in some cases abnormal UPBO control from DSLAM could leads to sync up issue(such as not enough Tx Power to sync with minimum rate). Thus with this feature now you could disable UPBO and won’t get affected by DSLAM setting.",
 							"This item configures Profile to be used for VDSL connection, default is 30a multi mode. However in order to work around the non-standard 30a multi mode VDSL DSLAM sync issue, which deployed by some of Germany ISP, set to 17a multi mode might be needed in order for the VDSL line to sync up. For users of other countries, there is no need to change this setting.",
-							"");
+							"Apply special settings for specific country. With this option, the Stability Adjustment for ADSL is properly set according to the selected country.");
 							
 //DualWAN
 helpcontent[26] = new Array("",

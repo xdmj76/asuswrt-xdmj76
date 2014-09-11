@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <html xmlns:v>
 <head>
-<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE9"/>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta HTTP-EQUIV="Pragma" CONTENT="no-cache">
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
@@ -15,15 +15,6 @@
 <link rel="stylesheet" type="text/css" href="NM_style.css">
 <link rel="stylesheet" type="text/css" href="other.css">
 <link rel="stylesheet" type="text/css" href="/device-map/device-map.css">
-<script type="text/javascript" src="/md5.js"></script>
-<script type="text/javascript" src="/state.js"></script>
-<script type="text/javascript" src="/popup.js"></script>
-<script type="text/javascript" src="/disk_functions.js"></script>
-<script type="text/javascript" src="/help.js"></script>
-<script type="text/javascript" src="/detect.js"></script>
-<script language="JavaScript" type="text/javascript" src="/jquery.js"></script>
-<script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
-
 <style type="text/css">
 .contentM_qis{
 	position:absolute;
@@ -76,12 +67,27 @@
 	background-color:#84C1FF;
 }
 </style>
+<script type="text/javascript" src="/md5.js"></script>
+<script type="text/javascript" src="/state.js"></script>
+<script type="text/javascript" src="/general.js"></script>
+<script type="text/javascript" src="/popup.js"></script>
+<script type="text/javascript" src="/disk_functions.js"></script>
+<script type="text/javascript" src="/help.js"></script>
+<script type="text/javascript" src="/detect.js"></script>
+<script language="JavaScript" type="text/javascript" src="/jquery.js"></script>
+<script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
 <script>
 var $j = jQuery.noConflict();	
 
 if(location.pathname == "/"){
-	if('<% nvram_get("x_Setting"); %>' == '0')
-		location.href = '/QIS_wizard.htm?flag=welcome';
+	if('<% nvram_get("x_Setting"); %>' == '0'){
+		if(tmo_support){
+			location.href = '/QIS_wizard_m.htm';
+		}
+		else{
+			location.href = '/QIS_wizard.htm?flag=welcome';
+		}
+	}	
 	else if('<% nvram_get("w_Setting"); %>' == '0' && sw_mode != 2)
 		location.href = '/QIS_wizard.htm?flag=wireless';
 }
@@ -115,13 +121,7 @@ else
 
 
 // Client list
-var leases = [<% dhcp_leases(); %>];	// [[hostname, MAC, ip, lefttime], ...]
-var arps = [<% get_arp_table(); %>];		// [[ip, x, x, MAC, x, type], ...]
-var arls = [<% get_arl_table(); %>];		// [[MAC, port, x, x], ...]
 var wireless = [<% wl_auth_list(); %>];	// [[MAC, associated, authorized], ...]
-var ipmonitor = [<% get_static_client(); %>];	// [[IP, MAC, DeviceName, Type, http, printer, iTune], ...]
-var networkmap_fullscan = '<% nvram_match("networkmap_fullscan", "0", "done"); %>'; //2008.07.24 Add.  1 stands for complete, 0 stands for scanning.;
-var client_list_array = '<% get_client_detail_info(); %>';
 
 // USB function
 var currentUsbPort = new Number();
@@ -168,9 +168,11 @@ function initial(){
 		var tmpDisk = new newDisk();
 		tmpDisk.usbPath = i+1;
 		show_USBDevice(tmpDisk);
-
 		$("usbPathContianer_"+parseInt(i+1)).style.display = "";
+		
 	}
+	
+	check_usb3();
 	for(var i=0; i<usbDevices.length; i++){
 	  var new_option = new Option(usbDevices[i].deviceName, usbDevices[i].deviceIndex);
 		document.getElementById('deviceOption_'+usbDevices[i].usbPath).options.add(new_option);
@@ -212,7 +214,6 @@ function initial(){
 		$("bgimg").options[NM_table_img[4]].selected = 1;
 	}
 	update_wan_status();
-	//custom_ip($('ipaddr_field_chk'));
 }
 
 function show_ddns_status(){
@@ -416,7 +417,8 @@ function showDiskInfo(device){
 		percentbar = simpleNum2((device.totalSize - device.totalUsed)/device.totalSize*100);
 		percentbar = Math.round(100 - percentbar);		
 
-		dec_html_code += '<p id="diskDesc'+ device.usbPath +'" style="margin-top:5px;"><#Availablespace#>:</p><div id="diskquota" align="left" style="margin-top:5px;margin-bottom:10px;">\n';
+		//dec_html_code += '<p id="diskDesc'+ device.usbPath +'" style="margin-top:5px;"><#Availablespace#>:</p><div id="diskquota" align="left" style="margin-top:5px;margin-bottom:10px;">\n';
+		dec_html_code += '<div id="diskquota" align="left" style="margin-top:5px;margin-bottom:10px;">\n';
 		dec_html_code += '<img src="images/quotabar.gif" width="' + percentbar + '" height="13">';
 		dec_html_code += '</div>\n';
 	}
@@ -457,7 +459,7 @@ function no_device_html(device_seat){
 	var dec_html_code = '';
 	
 	icon_html_code += '<div class="iconNo"></div>';
-	dec_html_code += '<div style="margin:20px" id="noUSB'+ device_seat +'">';
+	dec_html_code += '<div style="margin:10px" id="noUSB'+ device_seat +'">';
 
 	if(rc_support.search("usbX") > -1)
 		dec_html_code += '<#NoDevice#>';
@@ -537,7 +539,7 @@ function clickEvent(obj){
 
 	if(lastClicked){
 		if(lastClicked.id.indexOf("USBdisk") > 0)
-			lastClicked.style.backgroundPosition = '0% -3px';
+			lastClicked.style.backgroundPosition = '0% -4px';
 		else
 			lastClicked.style.backgroundPosition = '0% 0%';
 	}
@@ -638,7 +640,7 @@ function showstausframe(page){
 function check_status(_device){
 	var diskOrder = _device.usbPath;
 	document.getElementById('iconUSBdisk_'+diskOrder).style.backgroundImage = "url(/images/New_ui/networkmap/USB_2.png)";	
-	document.getElementById('iconUSBdisk_'+diskOrder).style.backgroundPosition = '0px -3px';
+	document.getElementById('iconUSBdisk_'+diskOrder).style.backgroundPosition = '0px -4px';
 	document.getElementById('iconUSBdisk_'+diskOrder).style.position = "absolute";
 	document.getElementById('iconUSBdisk_'+diskOrder).style.marginTop = "0px";
 
@@ -671,10 +673,10 @@ function check_status(_device){
 				break;
 		}
 	}
-
+	
 	if(got_code_1){
 		// red
-		document.getElementById('iconUSBdisk_'+diskOrder).style.backgroundPosition = '0px -3px';
+		document.getElementById('iconUSBdisk_'+diskOrder).style.backgroundPosition = '0px -6px';
 		document.getElementById('ring_USBdisk_'+diskOrder).style.backgroundPosition = '0% 101%';
 	}
 	else if(got_code_2 || got_code_3){
@@ -682,7 +684,7 @@ function check_status(_device){
 	}
 	else{
 		// blue
-		document.getElementById('iconUSBdisk_'+diskOrder).style.backgroundPosition = '0px -3px';
+		document.getElementById('iconUSBdisk_'+diskOrder).style.backgroundPosition = '0px -5px';
 		document.getElementById('ring_USBdisk_'+diskOrder).style.backgroundPosition = '0% 50%';
 	}
 }
@@ -706,34 +708,9 @@ function show_ddns_fail_hint() {
 	if( !((link_status == "2" && link_auxstatus == "0") || (link_status == "2" && link_auxstatus == "2")) )
 		str = "<#Disconnected#>";
 	else if(ddns_server = 'WWW.ASUS.COM') {
-		if(ddns_return_code == 'register,203')
-               alert("<#LANHostConfig_x_DDNS_alarm_hostname#> '<%nvram_get("ddns_hostname_x");%>' <#LANHostConfig_x_DDNS_alarm_registered#>");
-        else if(ddns_return_code.indexOf('233')!=-1)
-                str = "<#LANHostConfig_x_DDNS_alarm_hostname#> '<%nvram_get("ddns_hostname_x");%>' <#LANHostConfig_x_DDNS_alarm_registered_2#> '<%nvram_get("ddns_old_name");%>'";
-	  	else if(ddns_return_code.indexOf('297')!=-1)
-        		str = "<#LANHostConfig_x_DDNS_alarm_7#>";
-	  	else if(ddns_return_code.indexOf('298')!=-1)
-    			str = "<#LANHostConfig_x_DDNS_alarm_8#>";
-	  	else if(ddns_return_code.indexOf('299')!=-1)
-    			str = "<#LANHostConfig_x_DDNS_alarm_9#>";
-  		else if(ddns_return_code.indexOf('401')!=-1)
-	    		str = "<#LANHostConfig_x_DDNS_alarm_10#>";
-	  	else if(ddns_return_code.indexOf('407')!=-1)
-    			str = "<#LANHostConfig_x_DDNS_alarm_11#>";
-		else if(ddns_return_code.indexOf('-1')!=-1)
-			str = "<#LANHostConfig_x_DDNS_alarm_2#>";
-	  	else if(ddns_return_code =='no_change')
-    			str = "<#LANHostConfig_x_DDNS_alarm_nochange#>";
-	        else if(ddns_return_code == 'Time-out')
-        	        str = "<#LANHostConfig_x_DDNS_alarm_1#>";
-	        else if(ddns_return_code =='unknown_error')
-        	        str = "<#LANHostConfig_x_DDNS_alarm_2#>";
-	  	else if(ddns_return_code =='')
-    			str = "<#LANHostConfig_x_DDNS_alarm_2#>";
-		else if(ddns_return_code =='connect_fail')
-                	str = "<#qis_fail_desc7#>";
-                else if(ddns_return_code =='auth_fail')
-                        str = "<#qis_fail_desc1#>";
+		var ddnsHint = getDDNSState(ddns_return_code, "<%nvram_get("ddns_hostname_x");%>", "<%nvram_get("ddns_old_name");%>");
+		if(ddnsHint != "")
+			str = ddnsHint;
 	}
 	else 
 		str = "<#LANHostConfig_x_DDNS_alarm_2#>";
@@ -954,15 +931,6 @@ function edit_delete(){
 	}
 }
 
-/*function custom_ip(obj){
-	if($(obj.id).checked){
-		inputCtrl($('ipaddr_field'), 1);
-	}
-	else{
-		inputCtrl($('ipaddr_field'), 0);
-	}	
-}*/
-
 function show_custom_image(flag){
 	if(flag == "cancel"){	
 		$('edit_client_block').style.height = "250px";
@@ -990,7 +958,7 @@ function select_image(type){
 	document.getElementById('client_image').className = type;
 
 	if(type == "type0" || type == "type6")
-		document.getElementById('client_image').style.backgroundSize = "75px";
+		document.getElementById('client_image').style.backgroundSize = "74px";
 	else
 		document.getElementById('client_image').style.backgroundSize = "130px";		
 }
@@ -1032,6 +1000,16 @@ function cal_panel_block(){
 	}
 
 	$("edit_client_block").style.marginLeft = blockmarginLeft + "px";
+}
+
+function check_usb3(){
+	if(based_modelid == "DSL-AC68U" || based_modelid == "RT-AC3200" || based_modelid == "RT-AC87U" || based_modelid == "RT-AC69U" || based_modelid == "RT-AC68U" || based_modelid == "RT-AC68U_V2" || based_modelid == "RT-AC56S" || based_modelid == "RT-AC56U" || based_modelid == "RT-AC55U" || based_modelid == "RT-N18U" || based_modelid == "TM-AC1900"){
+		document.getElementById('usb1_image').src = "images/New_ui/networkmap/USB3.png";
+	}
+	else if(based_modelid == "RT-N65U"){
+		document.getElementById('usb1_image').src = "images/New_ui/networkmap/USB3.png";
+		document.getElementById('usb2_image').src = "images/New_ui/networkmap/USB3.png";
+	}
 }
 </script>
 </head>
@@ -1094,6 +1072,7 @@ function cal_panel_block(){
 	<input type="hidden" name="action_wait" value="1">
 	<input type="hidden" name="custom_clientlist" value="">
 </form>
+
 <div id="edit_client_block" class="contentM_qis" style="box-shadow: 3px 3px 10px #000;display:none;">
 	<table class="QISform_wireless" border=0 align="center" cellpadding="5" cellspacing="0" style="padding:5px 10px 0px 10px;">
 		<tr>
@@ -1324,16 +1303,16 @@ function cal_panel_block(){
 					<td id="usb1_html" width="160" bgcolor="#444f53" align="center" valign="top" class="NM_radius_top">
 						<div id="usbPathContianer_1" style="display:none">
 							<div style="margin-top:20px;margin-bottom:10px;" id="deviceIcon_1"></div>
-							<div>
+							<div><img id="usb1_image" src="images/New_ui/networkmap/USB2.png"></div>
+							<div style="margin:10px 0px;">
 								<span id="deviceText_1"></span>
 								<select id="deviceOption_1" class="input_option" style="display:none;height:20px;width:130px;font-size:12px;"></select>	
 							</div>
+							
 							<div id="deviceDec_1"></div>
 						</div>
 					</td>
-
 				</tr>				
-				
 				<tr id="usb2_html">
 					<td bgcolor="#444f53" align="center" valign="top" class="NM_radius_bottom">
 						<!--a id="" href="device-map/clients.asp" target="statusframe">
@@ -1345,10 +1324,11 @@ function cal_panel_block(){
 						<div id="usbPathContianer_2" style="display:none">
 							<img style="margin-top:15px;width:150px;height:2px" src="/images/New_ui/networkmap/linetwo2.png">
 							<div style="margin-top:10px;margin-bottom:10px;" id="deviceIcon_2"></div>
-							<div>
+							<div><img id="usb2_image" src="images/New_ui/networkmap/USB2.png"></div>
+							<div style="margin:10px 0px;">
 								<span id="deviceText_2"></span>
 								<select id="deviceOption_2" class="input_option" style="display:none;height:20px;width:130px;font-size:12px;"></select>	
-							</div>
+							</div>						
 							<div id="deviceDec_2"></div>
 						</div>
 					</td>
@@ -1399,6 +1379,17 @@ function cal_panel_block(){
 		else
 			clickEvent(document.getElementById('iconUSBdisk_2'));
 	}
+
+	setTimeout("document.networkmapdRefresh.submit();", 2000);
 </script>
 </body>
+
+<form method="post" name="networkmapdRefresh" action="/apply.cgi" target="hidden_frame">
+	<input type="hidden" name="action_mode" value="update_client_list">
+	<input type="hidden" name="action_script" value="">
+	<input type="hidden" name="action_wait" value="1">
+	<input type="hidden" name="current_page" value="httpd_check.htm">
+	<input type="hidden" name="next_page" value="httpd_check.htm">
+</form>
+
 </html>

@@ -20,6 +20,12 @@ p{
 <script type="text/javascript" src="/jquery.js"></script>
 <script type="text/javascript" src="/jquery.xdomainajax.js"></script>
 <script type="text/javascript" src="/help.js"></script>
+<style>
+.type0:hover{
+	background-image:url('/images/New_ui/networkmap/client.png') !important;
+	background-position:57% -10% !important;
+}
+</style>
 <script>
 overlib.isOut = true;
 var $j = jQuery.noConflict();
@@ -65,7 +71,7 @@ function drawClientList(tab){
 	genClientList();
 	pagesVar.endIndex = pagesVar.startIndex + pagesVar.CLIENTSPERPAGE;
 	while(i < pagesVar.endIndex){
-		var clientObj = clientList[clientList[i]];
+		var clientObj = clientList[clientList[i]];	
 
 		// fileter /*
 		if(i > clientList.length-1) break;
@@ -73,7 +79,7 @@ function drawClientList(tab){
 		if((tab == 'wired' && clientObj.isWL != 0) || !clientObj.isOnline){i++; pagesVar.endIndex++; continue;}
 		if((tab == 'wireless' && clientObj.isWL == 0) || !clientObj.isOnline){i++; pagesVar.endIndex++; continue;}
 		if(tab == 'custom' && !clientObj.isCustom){i++; pagesVar.endIndex++; continue;}
-		if(clientObj.name.toLowerCase().indexOf(document.getElementById("searchingBar").value.toLowerCase()) == -1){i++; pagesVar.endIndex++; continue;}
+		if(clientObj.name.toString().toLowerCase().indexOf(document.getElementById("searchingBar").value.toLowerCase()) == -1){i++; pagesVar.endIndex++; continue;}
 		// filter */ 
 
 		clientHtmlTd += '<div class="clientBg"><table width="100%" height="85px" border="0"><tr><td rowspan="3" width="85px"><div class="clientIcon type';
@@ -82,10 +88,12 @@ function drawClientList(tab){
 		clientHtmlTd += clientObj.mac;
 		clientHtmlTd += '\')" title="';
 		clientHtmlTd += clientObj.dpiType;
-		clientHtmlTd += '"></div></td><td style="height:30px;" class="radioIcon radio_';
+		clientHtmlTd += '"></div></td><td style="height:30px;" title="' 
+		clientHtmlTd += clientObj.name;
+		clientHtmlTd += '" class="radioIcon radio_';
 		clientHtmlTd += convRSSI(clientObj.rssi);
 		clientHtmlTd += '">';
-		clientHtmlTd += clientObj.name;
+		clientHtmlTd += (clientObj.name.length > 18) ? (clientObj.name.substr(0,16) + "...") : clientObj.name;
 		clientHtmlTd += '</td></tr><tr><td style="height:20px;">';
 		clientHtmlTd += (clientObj.isWebServer) ? '<a class="link" href="http://' + clientObj.ip + '" target="_blank">' + clientObj.ip + '</a>' : clientObj.ip;
 		clientHtmlTd += '</td></tr><tr><td><div style="margin-top:-15px;" class="link" onclick="oui_query(\'';
@@ -163,24 +171,7 @@ function retOverLibStr(client){
 	return overlibStr;
 }
 
-function ajaxCallJsonp(target){    
-    var data = $j.getJSON(target, {format: "json"});
-
-    data.success(function(msg){
-    	parent.retObj = msg;
-		parent.db("Success!");
-    });
-
-    data.error(function(msg){
-		parent.db("Error on fetch data!")
-    });
-}
-
 function oui_query(mac){
-	if(clientList[mac].callback != ""){
-		ajaxCallJsonp("http://" + clientList[mac].ip + ":" + clientList[mac].callback + "/callback.asp?output=netdev&jsoncallback=?");
-	}
-
 	var tab = new Array();
 	tab = mac.split(mac.substr(2,1));
 	$j.ajax({
@@ -217,6 +208,8 @@ function updateClientList(e){
 			setTimeout("updateClientList();", 1000);
 		},
 		success: function(response){
+			document.getElementById("loadingIcon").style.visibility = (networkmap_fullscan == 1) ? "visible" : "hidden";
+
 			if(isJsonChanged(originData, originDataTmp)){
 				drawClientList();
 				parent.show_client_status(totalClientNum.online);
@@ -342,6 +335,7 @@ function updateClientList(e){
 <br/>
 <img height="25" id="leftBtn" onclick="updatePagesVar('-');" style="cursor:pointer;margin-left:10px;" src="/images/arrow-left.png">
 <input type="button" id="refresh_list" class="button_gen" onclick="document.form.submit();" value="<#CTL_refresh#>" style="margin-left:70px;">
-<img height="25" id="rightBtn" onclick="updatePagesVar('+');" style="cursor:pointer;margin-left:50px;" src="/images/arrow-right.png">
+<img src="/images/InternetScan.gif" id="loadingIcon" style="visibility:hidden">
+<img height="25" id="rightBtn" onclick="updatePagesVar('+');" style="cursor:pointer;margin-left:25px;" src="/images/arrow-right.png">
 </body>
 </html>

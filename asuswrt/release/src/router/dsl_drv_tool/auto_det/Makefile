@@ -30,7 +30,12 @@ else
 OBJS = auto_det.o discover.o
 endif
 
+ifneq ($(wildcard ./prebuild),)
+all:
+	@-cp -f ./prebuild/auto_det .
+else
 all: auto_det
+endif
 
 auto_det: $(OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^

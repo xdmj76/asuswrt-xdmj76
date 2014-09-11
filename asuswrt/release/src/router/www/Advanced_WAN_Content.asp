@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <html xmlns:v>
 <head>
-<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7"/>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta HTTP-EQUIV="Pragma" CONTENT="no-cache">
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
@@ -103,7 +103,9 @@ function change_wan_unit(obj){
 	
 	if(obj.options[obj.selectedIndex].text == "USB") {
 		document.form.current_page.value = "Advanced_Modem_Content.asp";
-	}else if(obj.options[obj.selectedIndex].text == "WAN"|| obj.options[obj.selectedIndex].text == "Ethernet LAN"){
+	}else if(obj.options[obj.selectedIndex].text == "WAN" 
+			|| obj.options[obj.selectedIndex].text == "Ethernet LAN"
+			|| obj.options[obj.selectedIndex].text == "Ethernet WAN"){
 		if(wans_dualwan == "wan lan" || wans_dualwan == "lan wan"){
 			if(obj.selectedIndex != wan_unit_flag){
 				document.form.wan_unit.value = obj.selectedIndex;
@@ -125,9 +127,12 @@ function change_wan_unit(obj){
 function genWANSoption(){
 	for(i=0; i<wans_dualwan.split(" ").length; i++){
 		var wans_dualwan_NAME = wans_dualwan.split(" ")[i].toUpperCase();
-		if(wans_dualwan_NAME == "LAN")
-			wans_dualwan_NAME = "Ethernet LAN";
-			
+                //MODELDEP: DSL-N55U, DSL-N55U-B, DSL-AC68U, DSL-AC68R
+                if(wans_dualwan_NAME == "LAN" && 
+                        (productid == "DSL-N55U" || productid == "DSL-N55U-B" || productid == "DSL-AC68U" || productid == "DSL-AC68R")) 
+                        wans_dualwan_NAME = "Ethernet WAN";
+                else if(wans_dualwan_NAME == "LAN")
+                        wans_dualwan_NAME = "Ethernet LAN";		
 		document.form.wan_unit.options[i] = new Option(wans_dualwan_NAME, i);
 	}	
 	
@@ -136,7 +141,20 @@ function genWANSoption(){
 		$("WANscap").style.display = "none";
 }
 
+
 function applyRule(){
+	if(ctf.level2_supprot && (based_modelid == "RT-AC68U" || based_modelid == "RT-AC56U") && ctf.changeType()){		//To notify if using Level 2 CTF and change wan type to PPPoE、PPTP、L2TP
+		if((wan_proto_orig == "dhcp" || wan_proto_orig == "static") && ctf.getLevel() == 2){
+			if(confirm("Level 2 CTF can not be supported under PPPoE、PPTP or L2TP. If you want to switch to Level 1 CTF, please click confirm ")){
+				document.form.ctf_disable_force.value = 0;
+				document.form.ctf_fa_mode.value = 0;	
+			}
+			else{				
+				return false;
+			}
+		}	
+	}
+
 	if(validForm()){
 		showLoading();
 		inputCtrl(document.form.wan_dhcpenable_x[0], 1);
@@ -153,7 +171,7 @@ function applyRule(){
 			inputCtrl(document.form.wan_dns1_x, 1);
 			inputCtrl(document.form.wan_dns2_x, 1);
 		}
-
+		
 		// Turn CTF into level 1, and turn back to level 2 if there exists nvram ctf_fa_mode_close.
 		if(ctf.changeType() && ctf.getLevel() == 2 && ctf.level2_supprot){
 			FormActions("start_apply.htm", "apply", "reboot", "<% get_default_reboot_time(); %>");
@@ -731,6 +749,8 @@ function pass_checked(obj){
 <input type="hidden" name="lan_netmask" value="<% nvram_get("lan_netmask"); %>" />
 <input type="hidden" name="wan_pppoe_username_org" value="<% nvram_char_to_ascii("", "wan_pppoe_username"); %>" />
 <input type="hidden" name="wan_pppoe_passwd_org" value="<% nvram_char_to_ascii("", "wan_pppoe_passwd"); %>" />
+<input type="hidden" name="ctf_fa_mode" value="<% nvram_get("ctf_fa_mode"); %>">
+<input type="hidden" name="ctf_disable_force" value="<% nvram_get("ctf_disable_force"); %>">
 
 <table class="content" align="center" cellpadding="0" cellspacing="0">
   <tr>

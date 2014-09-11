@@ -1141,6 +1141,15 @@ void nat_setting(char *wan_if, char *wan_ip, char *wanx_if, char *wanx_ip, char 
 #endif
 	}
 
+#ifdef RTCONFIG_SSH
+	if (nvram_match("sshd_enable", "1") && nvram_get_int("sshd_forwarding"))
+	{
+		if ((wan_port = nvram_get_int("sshd_rport")) == 0)
+			wan_port = 22;
+		fprintf(fp, "-A VSERVER -p tcp -m tcp --dport %d -j DNAT --to-destination %s:%s\n",
+			wan_port, lan_ip, nvram_safe_get("sshd_port"));
+	}
+#endif
 	if (is_nat_enabled() && nvram_match("upnp_enable", "1"))
 	{
 #if 1
@@ -1402,6 +1411,15 @@ void nat_setting2(char *lan_if, char *lan_ip, char *logaccept, char *logdrop)	//
 #endif
 	}
 
+#ifdef RTCONFIG_SSH
+	if (nvram_match("sshd_enable", "1") && nvram_get_int("sshd_forwarding"))
+	{
+		if ((wan_port = nvram_get_int("sshd_rport")) == 0)
+			wan_port = 22;
+		fprintf(fp, "-A VSERVER -p tcp -m tcp --dport %d -j DNAT --to-destination %s:%s\n",
+			wan_port, lan_ip, nvram_safe_get("sshd_port"));
+	}
+#endif
 	if (is_nat_enabled() && nvram_match("upnp_enable", "1"))
 	{
 #if 1
@@ -2075,6 +2093,10 @@ filter_setting(char *wan_if, char *wan_ip, char *lan_if, char *lan_ip, char *log
 TRACE_PT("writing Parental Control\n");
 		config_daytime_string(fp, logaccept, logdrop);
 
+#ifdef RTCONFIG_IPV6
+                if (ipv6_enabled())
+                        config_daytime_string(fp_ipv6, logaccept, logdrop);
+#endif
 		dtype = logdrop;
 		ftype = logaccept;
 
@@ -2222,7 +2244,12 @@ TRACE_PT("writing Parental Control\n");
 #endif
 #endif
 		}
-
+#ifdef RTCONFIG_SSH
+		if (nvram_match("sshd_enable", "1") && nvram_get_int("sshd_remote"))
+		{
+			fprintf(fp, "-A INPUT -p tcp -m tcp -d %s --dport %s -j %s\n", lan_ip, nvram_safe_get("sshd_port"), logaccept);
+		}
+#endif
 		if (!nvram_match("enable_ftp", "0"))
 		{
 			fprintf(fp, "-A INPUT -p tcp -m tcp --dport 21 -j %s\n", logaccept);
@@ -2280,6 +2307,12 @@ TRACE_PT("writing Parental Control\n");
 			start_pptpd();
 		}
 #endif
+
+		//Add for snmp daemon
+		if (nvram_match("snmpd_enable", "1")) {
+			fprintf(fp, "-A INPUT -p udp -s 0/0 --sport 1024:65535 -d %s --dport 161:162 -m state --state NEW,ESTABLISHED -j ACCEPT\n", wan_ipaddr);
+			fprintf(fp, "-A OUTPUT -p udp -s %s --sport 161:162 -d 0/0 --dport 1024:65535 -m state --state ESTABLISHED -j ACCEPT\n", wan_ipaddr);
+		}
 
 #ifdef RTCONFIG_IPV6
 		switch (get_ipv6_service()) {
@@ -2377,12 +2410,12 @@ TRACE_PT("writing Parental Control\n");
 // oleg patch ~
 	/* Drop the wrong state, INVALID, packets */
 	fprintf(fp, "-A FORWARD -m state --state INVALID -j %s\n", logdrop);
-#if 0
+//#if 0
 #ifdef RTCONFIG_IPV6
 	if (ipv6_enabled())
 	fprintf(fp_ipv6, "-A FORWARD -m state --state INVALID -j %s\n", logdrop);
 #endif
-#endif
+//#endif
 	if (strlen(macaccept)>0)
 	{
 		fprintf(fp, "-A %s -m state --state INVALID -j %s\n", macaccept, logdrop);
@@ -2642,6 +2675,11 @@ TRACE_PT("writing Parental Control\n");
 #else
 	// MAC address in list and in time period -> ACCEPT.
 	fprintf(fp, "-A PControls -j %s\n", logaccept);
+#ifdef RTCONFIG_IPV6
+	if (ipv6_enabled())
+		fprintf(fp_ipv6, "-A PControls -j %s\n", logaccept);
+#endif
+
 #endif
 
 	// Block VPN traffic
@@ -2915,7 +2953,7 @@ filter_setting2(char *lan_if, char *lan_ip, char *logaccept, char *logdrop)
 {
 	FILE *fp;	// oleg patch
 #ifdef RTCONFIG_IPV6
-	FILE *fp_ipv6;
+	FILE *fp_ipv6 = NULL;
 	char *protono;
 #endif
 	char *proto, *flag, *srcip, *srcport, *dstip, *dstport;
@@ -2950,7 +2988,7 @@ filter_setting2(char *lan_if, char *lan_ip, char *logaccept, char *logdrop)
 	int n;
 	char *ip;
 #endif
-	int v4v6_ok;
+	int v4v6_ok = IPT_V4;
 
 	if ((fp=fopen("/tmp/filter_rules", "w"))==NULL) return;
 #ifdef RTCONFIG_IPV6
@@ -2995,6 +3033,11 @@ filter_setting2(char *lan_if, char *lan_ip, char *logaccept, char *logdrop)
 	if(nvram_get_int("MULTIFILTER_ALL") != 0 && count_pc_rules() > 0){
 TRACE_PT("writing Parental Control\n");
 		config_daytime_string(fp, logaccept, logdrop);
+
+#ifdef RTCONFIG_IPV6
+		if (ipv6_enabled())
+			config_daytime_string(fp_ipv6, logaccept, logdrop);
+#endif
 
 		dtype = logdrop;
 		ftype = logaccept;
@@ -3150,7 +3193,12 @@ TRACE_PT("writing Parental Control\n");
 #endif
 #endif
 		}
-
+#ifdef RTCONFIG_SSH
+		if (nvram_match("sshd_enable", "1") && nvram_get_int("sshd_remote"))
+		{
+			fprintf(fp, "-A INPUT -p tcp -m tcp -d %s --dport %s -j %s\n", lan_ip, nvram_safe_get("sshd_port"), logaccept);
+		}
+#endif
 		if (!nvram_match("enable_ftp", "0"))
 		{
 			fprintf(fp, "-A INPUT -p tcp -m tcp --dport 21 -j %s\n", logaccept);
@@ -3653,6 +3701,11 @@ TRACE_PT("writing Parental Control\n");
 #else
 	// MAC address in list and in time period -> ACCEPT.
 	fprintf(fp, "-A PControls -j %s\n", logaccept);
+#ifdef RTCONFIG_IPV6
+	if (ipv6_enabled())
+		fprintf(fp_ipv6, "-A PControls -j %s\n", logaccept);
+#endif
+
 #endif
 
 	// Block VPN traffic
@@ -4045,7 +4098,7 @@ mangle_setting(char *wan_if, char *wan_ip, char *lan_if, char *lan_ip, char *log
 		if (nvram_match("url_enable_x", "1") || nvram_match("keyword_enable_x", "1")) {
 			eval("iptables", "-t", "mangle", "-A", "FORWARD",
 			     "-p", "tcp", "--dport", "80",
-			     "-m", "state", "--state", "NEW", "-j", "MARK", "--set-mark", "0x01");
+			     "-m", "state", "--state", "NEW", "-j", "MARK", "--set-mark", "0x01/0x7");
 		}
 
 		/* mark VTS loopback connections */
@@ -4055,26 +4108,35 @@ mangle_setting(char *wan_if, char *wan_ip, char *lan_if, char *lan_ip, char *log
 			ip2class(lan_ip, nvram_safe_get("lan_netmask"), lan_class);
 			eval("iptables", "-t", "mangle", "-A", "FORWARD",
 			     "-o", lan_if, "-s", lan_class, "-d", lan_class,
-			     "-m", "state", "--state", "NEW", "-j", "MARK", "--set-mark", "0x01");
+			     "-m", "state", "--state", "NEW", "-j", "MARK", "--set-mark", "0x01/0x7");
 		}
 #ifdef RTCONFIG_BCMARM
 		/* mark STUN connection*/
 		if (nvram_match("fw_pt_stun", "1")) {
 			eval("iptables", "-t", "mangle", "-A", "FORWARD",
 			     "-p", "udp",
-			     "-m", "state", "--state", "NEW", "-j", "MARK", "--set-mark", "0x01");
+			     "-m", "state", "--state", "NEW", "-j", "MARK", "--set-mark", "0x01/0x7");
 		}
 #endif
 #ifdef RTCONFIG_IPV6
 		if (get_ipv6_service() == IPV6_6IN4) {
 #ifdef RTCONFIG_BCMARM
 			eval("ip6tables", "-t", "mangle", "-A", "FORWARD",
-			     "-m", "state", "--state", "NEW", "-j", "MARK", "--set-mark", "0x01");
+			     "-m", "state", "--state", "NEW", "-j", "MARK", "--set-mark", "0x01/0x7");
 #else
 			eval("ip6tables", "-t", "mangle", "-A", "FORWARD",
 			     "-m", "state", "--state", "NEW", "-j", "SKIPLOG");
 #endif
 		}
+#endif
+
+#if defined(RTCONFIG_PPTPD) || defined(RTCONFIG_ACCEL_PPTPD)
+                //Set mark if ppp connection without encryption
+                if( nvram_match("pptpd_enable", "1") && (nvram_get_int("pptpd_mppe")>7) ) {
+                        eval("iptables", "-t", "mangle", "-A", "FORWARD",
+                             "-p", "tcp",
+                             "-m", "state", "--state", "NEW", "-j", "MARK", "--set-mark", "0x01/0x7");
+                }
 #endif
 	}
 #endif
@@ -4129,7 +4191,7 @@ mangle_setting2(char *lan_if, char *lan_ip, char *logaccept, char *logdrop)
 		if (nvram_match("url_enable_x", "1") || nvram_match("keyword_enable_x", "1")) {
 			eval("iptables", "-t", "mangle", "-A", "FORWARD",
 			     "-p", "tcp", "--dport", "80",
-			     "-m", "state", "--state", "NEW", "-j", "MARK", "--set-mark", "0x01");
+			     "-m", "state", "--state", "NEW", "-j", "MARK", "--set-mark", "0x01/0x7");
 		}
 
 		/* mark VTS loopback connections */
@@ -4139,25 +4201,34 @@ mangle_setting2(char *lan_if, char *lan_ip, char *logaccept, char *logdrop)
 			ip2class(lan_ip, nvram_safe_get("lan_netmask"), lan_class);
 			eval("iptables", "-t", "mangle", "-A", "FORWARD",
 			     "-o", lan_if, "-s", lan_class, "-d", lan_class,
-			     "-m", "state", "--state", "NEW", "-j", "MARK", "--set-mark", "0x01");
+			     "-m", "state", "--state", "NEW", "-j", "MARK", "--set-mark", "0x01/0x7");
 		}
 #ifdef RTCONFIG_BCMARM
 		/* mark STUN connection*/
 		if (nvram_match("fw_pt_stun", "1")) {
 			eval("iptables", "-t", "mangle", "-A", "FORWARD",
 			     "-p", "udp",
-			     "-m", "state", "--state", "NEW", "-j", "MARK", "--set-mark", "0x01");
+			     "-m", "state", "--state", "NEW", "-j", "MARK", "--set-mark", "0x01/0x7");
 		}
 #endif
 #ifdef RTCONFIG_IPV6
 		if (get_ipv6_service() == IPV6_6IN4) {
 #ifdef RTCONFIG_BCMARM
 			eval("ip6tables", "-t", "mangle", "-A", "FORWARD",
-			     "-m", "state", "--state", "NEW", "-j", "MARK", "--set-mark", "0x01");
+			     "-m", "state", "--state", "NEW", "-j", "MARK", "--set-mark", "0x01/0x7");
 #else
 			eval("ip6tables", "-t", "mangle", "-A", "FORWARD",
 			     "-m", "state", "--state", "NEW", "-j", "SKIPLOG");
 #endif
+		}
+#endif
+
+#if defined(RTCONFIG_PPTPD) || defined(RTCONFIG_ACCEL_PPTPD)
+		//Set mark if ppp connection without encryption
+		if( nvram_match("pptpd_enable", "1") && (nvram_get_int("pptpd_mppe")>7) ) {
+			eval("iptables", "-t", "mangle", "-A", "FORWARD",
+			     "-p", "tcp",
+			     "-m", "state", "--state", "NEW", "-j", "MARK", "--set-mark", "0x01/0x7");
 		}
 #endif
 	}

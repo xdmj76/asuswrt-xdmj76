@@ -57,14 +57,14 @@ void rpc_parse_nvram_from_httpd(int unit, int subunit)
 		return;
 
 	if (unit == 1 && subunit == -1){
-		// rpc_qcsapi_set_SSID(WIFINAME, value);
+		rpc_qcsapi_set_SSID(WIFINAME, nvram_safe_get("wl1_ssid"));
 		rpc_qcsapi_set_SSID_broadcast(WIFINAME, nvram_safe_get("wl1_closed"));
 		rpc_qcsapi_set_vht(nvram_safe_get("wl1_nmode_x"));
-		// rpc_qcsapi_set_bw(value);
-		// rpc_qcsapi_set_channel(value);
-		// rpc_qcsapi_set_beacon_type(WIFINAME, value);
-		// rpc_qcsapi_set_WPA_encryption_modes(WIFINAME, value);
-		// rpc_qcsapi_set_key_passphrase(WIFINAME, value);
+		rpc_qcsapi_set_bw(nvram_safe_get("wl1_bw"));
+		rpc_qcsapi_set_channel(nvram_safe_get("wl1_chanspec"));
+		rpc_qcsapi_set_beacon_type(WIFINAME, nvram_safe_get("wl1_auth_mode_x"));
+		rpc_qcsapi_set_WPA_encryption_modes(WIFINAME, nvram_safe_get("wl1_crypto"));
+		rpc_qcsapi_set_key_passphrase(WIFINAME, nvram_safe_get("wl1_wpa_psk"));
 		rpc_qcsapi_set_dtim(nvram_safe_get("wl1_dtim"));
 		rpc_qcsapi_set_beacon_interval(nvram_safe_get("wl1_bcn"));
 		rpc_set_radio(1, 0, nvram_get_int("wl1_radio"));
@@ -74,6 +74,30 @@ void rpc_parse_nvram_from_httpd(int unit, int subunit)
 		rpc_update_wdslist();
 		rpc_update_wds_psk(nvram_safe_get("wl1_wds_psk"));
 		rpc_update_ap_isolate(WIFINAME, atoi(nvram_safe_get("wl1_ap_isolate")));
+
+		if(nvram_get_int("wl1_80211h") == 1){
+			dbG("[80211h] set_80211h_on\n");
+			qcsapi_wifi_run_script("router_command.sh", "80211h_on");
+		}else{
+			dbG("[80211h] set_80211h_off\n");
+			qcsapi_wifi_run_script("router_command.sh", "80211h_off");
+		}
+		if(nvram_get_int("sw_mode") == SW_MODE_ROUTER ||
+			(nvram_get_int("sw_mode") == SW_MODE_AP &&
+				nvram_get_int("wlc_psta") == 0)){
+			if(nvram_get_int("wl1_chanspec") == 0){
+				if (nvram_match("1:ccode", "EU")){
+					if(nvram_get_int("acs_dfs") != 1){
+						dbG("[dfs] start nodfs scanning and selection\n");
+						start_nodfs_scan_qtn();
+					}
+				}else{
+					/* all country except EU */
+					dbG("[dfs] start nodfs scanning and selection\n");
+					start_nodfs_scan_qtn();
+				}
+			}
+		}
 	}else if (unit == 1 && subunit == 1){
 		if(nvram_get_int("wl1.1_bss_enabled") == 1){
 			rpc_update_mbss("wl1.1_ssid", nvram_safe_get("wl1.1_ssid"));
@@ -82,6 +106,9 @@ void rpc_parse_nvram_from_httpd(int unit, int subunit)
 			rpc_update_mbss("wl1.1_wpa_gtk_rekey", nvram_safe_get("wl1.1_wpa_gtk_rekey"));
 			rpc_update_mbss("wl1.1_auth_mode_x", nvram_safe_get("wl1.1_auth_mode_x"));
 			rpc_update_mbss("wl1.1_mbss", nvram_safe_get("wl1.1_mbss"));
+		}
+		else{
+			qcsapi_wifi_remove_bss(wl_vifname_qtn(unit, subunit));
 		}
 	}else if (unit == 1 && subunit == 2){
 		if(nvram_get_int("wl1.2_bss_enabled") == 1){
@@ -92,6 +119,9 @@ void rpc_parse_nvram_from_httpd(int unit, int subunit)
 			rpc_update_mbss("wl1.2_auth_mode_x", nvram_safe_get("wl1.2_auth_mode_x"));
 			rpc_update_mbss("wl1.2_mbss", nvram_safe_get("wl1.2_mbss"));
 		}
+		else{
+			qcsapi_wifi_remove_bss(wl_vifname_qtn(unit, subunit));
+		}
 	}else if (unit == 1 && subunit == 3){
 		if(nvram_get_int("wl1.3_bss_enabled") == 1){
 			rpc_update_mbss("wl1.3_ssid", nvram_safe_get("wl1.3_ssid"));
@@ -101,8 +131,9 @@ void rpc_parse_nvram_from_httpd(int unit, int subunit)
 			rpc_update_mbss("wl1.3_auth_mode_x", nvram_safe_get("wl1.3_auth_mode_x"));
 			rpc_update_mbss("wl1.3_mbss", nvram_safe_get("wl1.3_mbss"));
 		}
-	}else{
-		dbG("error: no this 5G IF\n");
+		else{
+			qcsapi_wifi_remove_bss(wl_vifname_qtn(unit, subunit));
+		}
 	}
 
 //	rpc_show_config();
@@ -172,8 +203,10 @@ QTN_RESET:
 	eval("ifconfig", "br0:1", "down");
 	nvram_set("qtn_ready", "1");
 
-	dbG("[QTN] update router_command.sh from brcm to qtn\n");
-	qcsapi_wifi_run_script("set_test_mode", "update_router_command");
+	if(nvram_get_int("AllLED") == 0) setAllLedOff();
+
+	// dbG("[QTN] update router_command.sh from brcm to qtn\n");
+	// qcsapi_wifi_run_script("set_test_mode", "update_router_command");
 
 #if 1	/* STATELESS */
 	if(nvram_get_int("sw_mode") == SW_MODE_AP &&
@@ -222,8 +255,16 @@ QTN_RESET:
 		(nvram_get_int("sw_mode") == SW_MODE_AP &&
 			nvram_get_int("wlc_psta") == 0)){
 		if(nvram_get_int("wl1_chanspec") == 0){
-			dbG("[dfs] start nodfs scanning and selection\n");
-			start_nodfs_scan_qtn();
+			if (nvram_match("1:ccode", "EU")){
+				if(nvram_get_int("acs_dfs") != 1){
+					dbG("[dfs] start nodfs scanning and selection\n");
+					start_nodfs_scan_qtn();
+				}
+			}else{
+				/* all country except EU */
+				dbG("[dfs] start nodfs scanning and selection\n");
+				start_nodfs_scan_qtn();
+			}
 		}
 	}
 	if(nvram_get_int("sw_mode") == SW_MODE_AP &&

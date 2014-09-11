@@ -5,7 +5,7 @@
 <!--Advanced_Feedback.asp-->
 
 <head>
-<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7"/>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta HTTP-EQUIV="Pragma" CONTENT="no-cache">
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
@@ -63,7 +63,7 @@ function applyRule(){
 						return false;
 				}
 		}
-	
+		document.form.fb_browserInfo.value = navigator.userAgent;
 		showLoading(60);
 		document.form.submit();
 	}
@@ -79,6 +79,14 @@ function isEmail(strE) {
 	else
 		return false;
 }
+
+function textCounter(field, cnt, upper) {
+        if (field.value.length > upper)
+                field.value = field.value.substring(0, upper);
+        else
+                cnt.value = upper - field.value.length;
+}
+
 </script>
 </head>
 <body onload="initial();" onunLoad="return unload_body();">
@@ -110,6 +118,7 @@ function isEmail(strE) {
 <input type="hidden" name="PM_attach_iptables" value="">	
 <input type="hidden" name="feedbackresponse" value="<% nvram_get("feedbackresponse"); %>">
 <input type="hidden" name="fb_experience" value="<% nvram_get("fb_experience"); %>">
+<input type="hidden" name="fb_browserInfo" value="">
 <table class="content" align="center" cellpadding="0" cellspacing="0">
 <tr>
 <td width="17">&nbsp;</td>
@@ -183,13 +192,14 @@ function isEmail(strE) {
 		<#feedback_comments#> *
 	</th>
 	<td>
-		<textarea name="fb_comment" maxlength="2000" cols="55" rows="8" style="font-family:'Courier New', Courier, mono; font-size:13px;background:#475A5F;color:#FFFFFF;"></textarea>
-		<br> <#feedback_optional#>
+		<textarea name="fb_comment" maxlength="2000" cols="55" rows="8" style="font-family:'Courier New', Courier, mono; font-size:13px;background:#475A5F;color:#FFFFFF;" onKeyDown="textCounter(this,document.form.msglength,2000);" onKeyUp="textCounter(this,document.form.msglength,2000)"></textarea>
+		<i>Maximum of 2000 characters - characters left : <input type="text" class="input_6_table" name="msglength" id="msglength" maxlength="4" value="2000" readonly></i>
 	</td>
 </tr>
 
 <tr align="center">
-	<td colspan="2">	
+	<td colspan="2">
+		<div style="margin-left:-680px;"><#feedback_optional#></div>
 		<input class="button_gen" onclick="applyRule()" type="button" value="Send"/>
 	</td>	
 </tr>

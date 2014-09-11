@@ -665,6 +665,14 @@ enum qcsapi_errno
 	 * <QCS API error 1046: MLME statistics is not supported>
 	 */
 	qcsapi_mlme_stats_not_supported = qcsapi_errno_base + 46,
+        /**
+         * This error code is returned when a board parameter requested for is not supported.
+         *
+         * <c>call_qcsapi</c> printed error message:
+         *
+         * <QCS API error 1047: Board parameter is not supported>
+         */
+        qcsapi_board_parameter_not_supported = qcsapi_errno_base + 47,
 };
 
 /*
@@ -962,6 +970,17 @@ typedef enum {
 	qcsapi_stbc,
 	qcsapi_nosuch_option = 0
 } qcsapi_option_type;
+
+/**
+ * \brief Enumeration used in the board parameter get API.
+ *
+ * \sa qcsapi_get_board_parameter
+ */
+typedef enum {
+	qcsapi_hw_revision = 1,
+	qcsapi_rf_chipid,
+	qcsapi_nosuch_parameter = 0
+} qcsapi_board_parameter_type;
 
 /**
  * \brief This enumeration represents the bandwidth in use on the device.
@@ -2701,6 +2720,25 @@ extern int	qcsapi_wifi_get_scs_stat_report(const char *ifname, struct qcsapi_scs
  * The output will be stats containing channel, cca interference unless an error occurs.
  */
 extern int	qcsapi_wifi_get_scs_currchan_report(const char *ifname, struct qcsapi_scs_currchan_rpt *scs_currchan_rpt);
+
+/**
+ * \internal
+ * \brief Start/Stop SCS stats task.
+ *
+ * Start/Stop the SCS stats task.
+ *
+ * \param ifname \wifi0
+ * \param start a value for start/stop indication
+ *
+ * \return 0 on success or negative values on error
+ *
+ * \callqcsapi
+ *
+ * <c>call_qcsapi set_scs_stats \<WiFi interface\> [ 0 | 1 ]</c>
+ *
+ * Unless an error occurs, the output will be the string <c>complete</c>.
+ */
+extern int	qcsapi_wifi_set_scs_stats(const char *ifname, uint16_t start);
 
 /**
  * \brief Get the initial auto channel evaluation result.
@@ -5408,6 +5446,100 @@ extern int	qcsapi_wifi_get_ap_isolate(const char *ifname, int *p_ap_isolate);
  * \sa qcsapi_ap_isolate_type
  */
 extern int	qcsapi_wifi_set_ap_isolate(const char *ifname, const int new_ap_isolate);
+
+/**
+ * @brief Get the current intra-BSS isolation setting.
+ *
+ * This API returns the current intra-BSS isolation setting for the given interface.
+ *
+ * \note This API can only be called on an AP device.
+ *
+ * \param ifname \wifi0
+ * \param p_ap_isolate return parameter to contain the the current intra-BSS isolation setting.
+ *
+ * \return 0 on success.
+ * \return A negative value if an error occurred.  See @ref mysection4_1_4 "QCSAPI Return Values"
+ * for error codes and messages.
+ *
+ * \callqcsapi
+ *
+ * <c>call_qcsapi get_intra_bss_isolate \<WiFi interface\></c>
+ *
+ * Unless an error occurs, the output will be the current intra-BSS isolation setting for the given interface.
+ */
+extern int	qcsapi_wifi_get_intra_bss_isolate(const char *ifname, qcsapi_unsigned_int *p_ap_isolate);
+
+/**
+ * @brief Enable or disable intra-BSS isolation.
+ *
+ * This API configures intra-BSS isolation. When enabled for a BSS, packets will not be forwarded
+ * from one station associated on the BSS to any other stations associated on the same BSS.
+ *
+ * \note This API can only be called on an AP device.
+ *
+ * \param ifname \wifi0
+ * \param new_ap_isolate the new intra-BSS isolation setting
+ *
+ * \return 0 on success.
+ * \return A negative value if an error occurred.  See @ref mysection4_1_4 "QCSAPI Return Values"
+ * for error codes and messages.
+ *
+ * \callqcsapi
+ *
+ * <c>call_qcsapi set_intra_bss_isolate \<WiFi interface\> \<0|1\></c>
+ *
+ * Unless an error occurs, the output will be the string <c>complete</c>.
+ *
+ * \sa qcsapi_wifi_set_bss_isolate
+ */
+extern int	qcsapi_wifi_set_intra_bss_isolate(const char *ifname, const qcsapi_unsigned_int new_ap_isolate);
+
+/**
+ * @brief Get the current BSS isolation setting.
+ *
+ * This API returns the current BSS isolation setting for the given interface.
+ *
+ * \note This API can only be called on an AP device.
+ *
+ * \param ifname \wifi0
+ * \param p_ap_isolate return parameter to contain the the current BSS isolation setting.
+ *
+ * \return 0 on success.
+ * \return A negative value if an error occurred.  See @ref mysection4_1_4 "QCSAPI Return Values"
+ * for error codes and messages.
+ *
+ * \callqcsapi
+ *
+ * <c>call_qcsapi get_bss_isolate \<WiFi interface\></c>
+ *
+ * Unless an error occurs, the output will be the current BSS isolation setting.
+ */
+extern int	qcsapi_wifi_get_bss_isolate(const char *ifname, qcsapi_unsigned_int *p_ap_isolate);
+
+/**
+ * @brief Enable or disable BSS isolation.
+ *
+ * This API configures BSS isolation. When enabled for a BSS, packets will not be forwarded
+ * from one station associated on the BSS to any other stations associated on other BSS.
+ *
+ * \note This API can only be called on an AP device.
+ *
+ * \param ifname \wifi0
+ * \param new_ap_isolate the new BSS isolation setting
+ *
+ * \return 0 on success.
+ * \return A negative value if an error occurred.  See @ref mysection4_1_4 "QCSAPI Return Values"
+ * for error codes and messages.
+ *
+ * \callqcsapi
+ *
+ * <c>call_qcsapi set_bss_isolate \<WiFi interface\> \<0|1\></c>
+ *
+ * Unless an error occurs, the output will be the string <c>complete</c>.
+ *
+ * \sa qcsapi_wifi_set_intra_bss_isolate
+ */
+extern int	qcsapi_wifi_set_bss_isolate(const char *ifname, const qcsapi_unsigned_int new_ap_isolate);
 /**
  *@}*/
 
@@ -6560,6 +6692,31 @@ extern int	qcsapi_wifi_get_option( const char *ifname, qcsapi_option_type qcsapi
 extern int	qcsapi_wifi_set_option( const char *ifname, qcsapi_option_type qcsapi_option, int new_option );
 /**@}*/
 
+/**
+* @brief Get a board related parameter
+*
+* Get the value for the specified board parameter, as specified by
+* the qcsapi_board_parameter_type parameter, with the value returned
+* in the address specified by p_buffer.
+*
+* If the parameter (feature) is not supported, the API will
+* return <c>-qcsapi_board_parameter_not_supported</c>.
+*
+* \param board_param the board parameter to get the value of.
+* \param p_buffer return parameter to contain the value of the board parameter.
+* \param buf_length the parameter that specifies the length of p_buffer.
+*
+* \return 0 if the command succeeded.
+* \return A negative value if an error occurred. See @ref mysection4_1_4 "QCSAPI Return Values"
+* for error codes and messages.
+*
+* \callqcsapi
+*
+* <c>call_qcsapi get_board_parameter \<board parameter\> </c>
+*
+* \sa qcsapi_board_parameter_type
+*/
+extern int	qcsapi_get_board_parameter(qcsapi_board_parameter_type board_param, char *p_buffer, int buf_len);
 
 /*
  * Service Set (SSID) QCSAPIs
@@ -11465,6 +11622,21 @@ extern int qcsapi_wifi_set_nss_cap(const char *ifname, const qcsapi_mimo_type mo
  */
 extern int qcsapi_wifi_get_nss_cap(const char *ifname, const qcsapi_mimo_type modulation,
 					qcsapi_unsigned_int *nss);
+
+/**
+ * \brief get disassoc reason code
+ *
+ * This API call is used to get disassoc reason.
+ *
+ * \param ifname \wifi0
+ *
+ * \return >= 0 on success, < 0 on error.
+ *
+ * \callqcsapi
+ *
+ * <c>call_qcsapi disassoc_reason \<wifi interface\> </c>
+ */
+extern int qcsapi_wifi_get_disassoc_reason( const char *ifname, qcsapi_unsigned_int *reason );
 
 /**@}*/
 #ifdef __cplusplus

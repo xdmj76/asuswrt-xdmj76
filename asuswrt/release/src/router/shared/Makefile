@@ -25,7 +25,7 @@ CFLAGS += -I$(SRCBASE)/shared
 endif
 
 ifeq ($(RTCONFIG_QTN),y)
-CFLAGS += -I$(TOP)/libqcsapi_client -I$(TOP)/httpd
+CFLAGS += -I$(TOP)/libqcsapi_client -I$(TOP)/httpd -I./sysdeps/qtn
 LDFLAGS += -L$(TOP)/libqcsapi_client -lqcsapi_client
 endif
 
@@ -38,14 +38,6 @@ CFLAGS += -DBCM5301X
 endif
 
 include $(SRCBASE)/.config
-
-ifneq ($(findstring DSL,$(BUILD_NAME)),)
-MODEL = $(subst -,_,$(BUILD_NAME))
-else
-MODEL = $(subst -,,$(BUILD_NAME))
-endif
-
-export CFLAGS += -D$(MODEL)
 
 ifeq ($(RTCONFIG_4352_5G),y)
 CFLAGS += -DBCM4352
@@ -78,7 +70,7 @@ OBJS += flash_mtd.o api-ralink.o
 ifeq ($(RTCONFIG_RALINK_RT3052),y)
 OBJS += ra3052.o
 endif
-ifeq ($(RTN14U)$(RTAC52U)$(RTAC51U)$(RTN11P),y)
+ifeq ($(RTN14U)$(RTAC52U)$(RTAC51U)$(RTN11P)$(RTN54U),y)
 CFLAGS += -DRA_ESW
 OBJS += mt7620.o
 else
@@ -108,12 +100,12 @@ OBJS += ifaddrs.o
 endif
 
 ifeq ($(RTCONFIG_QTN),y)
-OBJS += find_host_addr.o
 OBJS += web-qtn.o
+#OBJS += find_host_addr.o
 endif
 
 ifeq ($(RTCONFIG_QTN),y)
-vpath %.c sysdeps sysdeps/broadcom sysdeps/ralink $(SRCBASE)/shared/ $(SRCBASE)/shared/bcmwifi/src $(WLAN_ComponentSrcDirs) $(TOP)/libqcsapi_client/qcsapi_rpc_common/client $(TOP)/httpd/sysdeps
+vpath %.c sysdeps sysdeps/broadcom sysdeps/ralink sysdeps/qtn $(SRCBASE)/shared/ $(SRCBASE)/shared/bcmwifi/src $(WLAN_ComponentSrcDirs) $(TOP)/libqcsapi_client/qcsapi_rpc_common/client
 else
 vpath %.c sysdeps sysdeps/broadcom sysdeps/ralink $(SRCBASE)/shared/ $(SRCBASE)/shared/bcmwifi/src $(WLAN_StdSrcDirsA) $(WLAN_ComponentSrcDirs) 
 endif
@@ -146,7 +138,7 @@ install: all
 
 
 clean:
-	rm -f *.o *.so *.a .*.depend sysdeps/*.o sysdeps/broadcom/*.o sysdeps/ralink/*.o
+	rm -f *.o *.so *.a .*.depend sysdeps/*.o sysdeps/broadcom/*.o sysdeps/ralink/*.o sysdeps/qtn/*.o
 
 %.o: %.c .%.depend
 	@echo " [shared] CC $@"

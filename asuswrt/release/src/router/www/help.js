@@ -1,13 +1,11 @@
 ﻿var Untranslated = {
 	fw_size_higher_mem : 'Memory space is NOT enough to upgrade on internet. Please wait for rebooting.',
 	the_array_is_end : "end here.",
-	Guest_Network_enable_ACL : "You must go to enable MAC filter",	
 	link_rate : "Link rate",
 	ASUSGATE_note6 : "Your DSL line appears to be unstable. We strongly recommend that you submit a feedback form for our analysis.",
 	ASUSGATE_note7 : "If you are experiencing any DSL related issues or have any comments / suggestions, please feel free to inform our support team.",
-	ASUSGATE_act_feedback : "Feedback now",
-	intelligence_type_desc : "Intelligence QoS type supports you to modify APPs category priority based on router stream. QoS type switching will only keep priority configuration for each client",
-	traditional_type_desc : "Traditional QoS type offers you advanced configure item including port, protocol and transferred. QoS type switching will only keep priority configuration for each client."
+	JS_validclientname : "Client device name only accept alphanumeric characters, under line and dash symbol. The first character cannot be dash \"-\" or under line \"_\".",
+	ASUSGATE_act_feedback : "Feedback now"
 };
 var clicked_help_string = "<#Help_init_word1#> <a class=\"hintstyle\" style=\"background-color:#7aa3bd\"><#Help_init_word2#></a> <#Help_init_word3#>";
 
@@ -125,7 +123,60 @@ function overHint(itemNum){
 	var statusmenu = "";
 	var title2 = 0;
 	var title5 = 0;
-
+	var title5_2 = 0;
+	
+	if(itemNum == 91){
+		statusmenu ="<span><#Adaptive_Category1#></span>";
+	}
+	else if(itemNum == 92){
+		statusmenu ="<span><#Adaptive_Category2#></span>";
+	}
+	else if(itemNum == 93){
+		statusmenu ="<span><#Adaptive_Category3#></span>";
+	}
+	else if(itemNum == 94){
+		statusmenu ="<span><#Adaptive_Category4#></span>";
+	}
+	else if(itemNum == 95){
+		statusmenu ="<span><#Adaptive_Category5#></span>";
+	}
+	if(itemNum == 96){
+		statusmenu ="<span><#Adaptive_Category6#></span>";
+	}
+	
+	if(itemNum == 24)		
+		statusmenu += "<span>The USB 3.0 cable without well-shielded would affect the 2.4Ghz wireless range.Enabling this feature to ensure the best wireless performance If your USB 3.0 device is not USB-IF certified.</span>";
+	
+	//for AiProtection-Router Security Scan
+	if(itemNum == 23)		
+		statusmenu += "<span><#AiProtection_scan_note23#></span>";
+	if(itemNum == 22)		
+		statusmenu += "<span><#AiProtection_scan_note22#></span>";
+	if(itemNum == 21)		
+		statusmenu += "<span><#AiProtection_scan_note21#></span>";
+	if(itemNum == 20)		
+		statusmenu += "<span><#AiProtection_scan_note20#></span>";
+	if(itemNum == 19)		
+		statusmenu += "<span><#AiProtection_scan_note19#></span>";
+	if(itemNum == 18)		
+		statusmenu += "<span><#AiProtection_scan_note18#></span>";
+	if(itemNum == 17)		
+		statusmenu += "<span><#AiProtection_scan_note17#></span>";
+	if(itemNum == 16)		
+		statusmenu += "<span><#AiProtection_scan_note16#></span>";
+	if(itemNum == 15)		
+		statusmenu += "<span><#AiProtection_scan_note15#></span>";
+	if(itemNum == 14)		
+		statusmenu += "<span><#AiProtection_scan_note14#></span>";
+	if(itemNum == 13)		
+		statusmenu += "<span><#AiProtection_scan_note13#></span>";
+	if(itemNum == 12)		
+		statusmenu += "<span><#AiProtection_scan_note12#></span>";
+	if(itemNum == 11)		
+		statusmenu += "<span><#AiProtection_scan_note11#></span>";	
+	if(itemNum == 10)		
+		statusmenu += "<span><#AiProtection_scan_note10#></span>";	
+	
 	// Viz add 2013.04 for dsl sync status
 	if(itemNum == 9){
 		statusmenu = "<div class='StatusHint'>ADSL :</div>";
@@ -133,7 +184,7 @@ function overHint(itemNum){
 			lineDesc = "Link up";
 		else if(wan_line_state == "wait for init")	
 			lineDesc = "Wait for init";
-		else if(wan_line_state == "init")
+		else if(wan_line_state == "init" || wan_line_state == "initializing")
 			lineDesc = "Initializing";
 		else
 			lineDesc = "Link down";
@@ -154,8 +205,7 @@ function overHint(itemNum){
 				else
 						wifiDesc = "<b>2.4GHz -</b><br><#btn_Enabled#><br><br><b>5 GHz -</b><br><#btn_Enabled#>";
 			
-				statusmenu += "<span>" + wifiDesc + "</span>";
-		
+				statusmenu += "<span>" + wifiDesc + "</span>";	
 		}
 		else{
 				if(wlan0_radio_flag == "0")
@@ -236,7 +286,10 @@ function overHint(itemNum){
 			for(var i=0; i<gn_array_5g.length; i++){
 				if(gn_array_5g[i][0] == 1){
 					if(title5 == 0){
-						statusmenu += "<div class='StatusHint' style='margin-top:15px;'>5GHz Network:</div>";				
+						if(wl_info.band5g_2_support)
+							statusmenu += "<div class='StatusHint' style='margin-top:15px;'>5GHz-1 Network:</div>";			
+						else	
+							statusmenu += "<div class='StatusHint' style='margin-top:15px;'>5GHz Network:</div>";		
 						title5 = 1;
 					}
 	
@@ -264,7 +317,39 @@ function overHint(itemNum){
 				}
 			}
 		}
-		if(title2 == 0 && title5 == 0)
+		if(wl_info.band5g_2_support){
+			for(var i=0; i<gn_array_5g_2.length; i++){
+				if(gn_array_5g_2[i][0] == 1){
+					if(title5_2 == 0){
+						statusmenu += "<div class='StatusHint' style='margin-top:15px;'>5GHz-2 Network:</div>";				
+						title5_2 = 1;
+					}
+	
+					var show_str = gn_array_5g_2[i][1];
+					show_str = decodeURIComponent(show_str);
+					show_str = handle_show_str(show_str);
+					statusmenu += "<span>" + show_str + " (";
+
+					if(gn_array_5g_2[i][11] == 0)
+						statusmenu += '<#Limitless#>';
+					else{
+						var expire_hr = Math.floor(gn_array_5g_2[i][13]/3600);
+						var expire_min = Math.floor((gn_array_5g_2[i][13]%3600)/60);
+						if(expire_hr > 0)
+							statusmenu += '<b id="expire_hr_'+i+'">'+ expire_hr + '</b> Hr <b id="expire_min_'+i+'">' + expire_min +'</b> Min';
+						else{
+							if(expire_min > 0)
+								statusmenu += '<b id="expire_min_'+i+'">' + expire_min +'</b> Min';
+							else	
+								statusmenu += '<b id="expire_min_'+i+'">< 1</b> Min';
+						}
+					}
+
+					statusmenu += " left)</span><br>";
+				}
+			}
+		}
+		if(title2 == 0 && title5 == 0 && title5_2 == 0)
 			statusmenu += "<div class='StatusHint'><#Guest_Network#>:</div><span><#CTL_Disabled#></span>";
 	}
 
@@ -2114,7 +2199,7 @@ function chkPass(pwd, flag) {
 		
 		/* Determine complexity based on overall score */
 		if (nScore > 100) { nScore = 100; } else if (nScore < 0) { nScore = 0; }
-		if(document.form.current_page.value != "ParentalControl_HomeSecurity.asp"){	
+		if(document.form.current_page.value != "AiProtection_HomeProtection.asp"){	
 			if (nScore >= 0 && nScore < 20) { sComplexity = "<#PASS_score0#>"; }
 			else if (nScore >= 20 && nScore < 40) { sComplexity = "<#PASS_score1#>"; }
 			else if (nScore >= 40 && nScore < 60) { sComplexity = "<#PASS_score2#>"; }
@@ -2130,7 +2215,7 @@ function chkPass(pwd, flag) {
 		}
 		
 		/* Display updated score criteria to client */
-		if(document.form.current_page.value != "ParentalControl_HomeSecurity.asp"){		//for Router weakness status, Jimeing added at 2014/06/07
+		if(document.form.current_page.value != "AiProtection_HomeProtection.asp"){		//for Router weakness status, Jimeing added at 2014/06/07
 			$('scorebarBorder').style.display = "";
 			oScorebar.style.backgroundPosition = "-" + parseInt(nScore * 4) + "px";
 		}

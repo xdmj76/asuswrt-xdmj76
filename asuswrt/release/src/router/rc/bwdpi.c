@@ -32,15 +32,22 @@ int bwdpi_main(int argc, char **argv)
 
 	if (argc == 1){
 		printf("Usage :\n");
-		printf("  bwdpi [iqos/qosd/wrs/dc] [start/stop/restart]\n");
+		printf("  bwdpi [iqos/qosd/wrs] [start/stop/restart]\n");
+		printf("  bwdpi dc [start/stop/restart] [ptah]\n");
 		printf("  bwdpi stat -m [mode] -n [name] -u [dura] -d [date]\n");
-		printf("  bwdpi dpi [0/init/1]\n");
 		printf("  bwpdi history -m [MAC] -z\n");
 		printf("  bwpdi app [0/1]\n");
 		printf("  bwpdi cc [0/1]\n");
 		printf("  bwpdi vp [0/1]\n");
 		printf("  bwpdi device -m [MAC]\n");
+		printf("  bwpdi device_info -m [MAC]\n");
 		printf("  bwpdi get_vp [0/2]\n");
+		printf("  bwpdi wrs_url\n");
+		printf("  bwpdi rewrite path1 path2 path3\n");
+		printf("  bwpdi checksize path size\n");
+		printf("  bwpdi extract path\n");
+		printf("  bwpdi get_app_patrol\n");
+		printf("  bwpdi get_anomaly [0/2]\n");
 		return 0;
 	}
 
@@ -106,17 +113,6 @@ int bwdpi_main(int argc, char **argv)
 		//dbg("[bwdpi] mode=%s, name=%s, dura=%s, date=%s\n", mode, name, dura, date);
 		return stat_main(mode, name, dura, date);
 	}
-	else if (!strcmp(argv[1], "dpi")){
-		if(argc != 3)
-		{
-			printf("  bwdpi dpi [0/init/1]\n");
-			return 0;
-		}
-		else
-		{
-			return dpi_main(argv[2]);
-		}
-	}
 	else if (!strcmp(argv[1], "history")){
 		while ((c = getopt(argc, argv, "m:z")) != -1)
 		{
@@ -179,14 +175,18 @@ int bwdpi_main(int argc, char **argv)
 		}
 	}
 	else if (!strcmp(argv[1], "dc")){
-		if(argc != 3)
+		if(argc == 3)
 		{
-			printf("  bwpdi dc [start/stop/restart]\n");
-			return 0;
+			return data_collect_main(argv[2], NULL);
+		}
+		else if(argc == 4)
+		{
+			return data_collect_main(argv[2], argv[3]);
 		}
 		else
 		{
-			return data_collect_main(argv[2]);
+			printf("  bwpdi dc [start/stop/restart] [path]\n");
+			return 0;
 		}
 	}
 	else if (!strcmp(argv[1], "device")){
@@ -204,6 +204,21 @@ int bwdpi_main(int argc, char **argv)
 		}
 		return device_main(name);
 	}
+	else if (!strcmp(argv[1], "device_info")){
+		while ((c = getopt(argc, argv, "m:")) != -1)
+		{
+			switch(c)
+			{
+				case 'm':
+					name = optarg;
+					break;
+				default:
+					printf("  bwpdi device_info -m [MAC]\n");
+					break;
+			}
+		}
+		return device_info_main(name);
+	}
 	else if (!strcmp(argv[1], "get_vp")){
 		if(argc != 3)
 		{
@@ -215,17 +230,90 @@ int bwdpi_main(int argc, char **argv)
 			return get_vp(argv[2]);
 		}
 	}
+	else if (!strcmp(argv[1], "wrs_url")){
+		if(argc != 2)
+		{
+			printf("  bwpdi wrs_url\n");
+			return 0;
+		}
+		else
+		{
+			return wrs_url_main();
+		}
+	}
+	else if (!strcmp(argv[1], "rewrite")){
+		if(argc != 5)
+		{
+			printf("  bwpdi rewrite path1 path2 path3\n");
+			return 0;
+		}
+		else
+		{
+			return rewrite_main(argv[2], argv[3], argv[4]);
+		}
+	}
+	else if (!strcmp(argv[1], "checksize")){
+		if(argc != 4)
+		{
+			printf("  bwpdi checksize path size\n");
+			return 0;
+		}
+		else
+		{
+			return check_filesize_main(argv[2], argv[3]);
+		}
+	}
+	else if (!strcmp(argv[1], "extract")){
+		if(argc != 3)
+		{
+			printf("  bwpdi extract path\n");
+			return 0;
+		}
+		else
+		{
+			return extract_data_main(argv[2]);
+		}
+	}
+	else if (!strcmp(argv[1], "get_app_patrol")){
+		if(argc != 2)
+		{
+			printf("  bwpdi get_app_patrol\n");
+			return 0;
+		}
+		else
+		{
+			return get_app_patrol_main();
+		}
+	}
+	else if (!strcmp(argv[1], "get_anomaly")){
+		if(argc != 3)
+		{
+			printf("  bwpdi get_anomaly [0/2]\n");
+			return 0;
+		}
+		else
+		{
+			return get_anomaly_main(argv[2]);
+		}
+	}
 	else{
 		printf("Usage :\n");
-		printf("  bwdpi [iqos/qosd/wrs/dc] [start/stop/restart]\n");
+		printf("  bwdpi [iqos/qosd/wrs] [start/stop/restart]\n");
+		printf("  bwdpi dc [start/stop/restart] [ptah]\n");
 		printf("  bwdpi stat -m [mode] -n [name] -u [dura] -d [date]\n");
-		printf("  bwdpi dpi [0/1]\n");
 		printf("  bwpdi history -m [MAC] -z\n");
 		printf("  bwpdi app [0/1]\n");
 		printf("  bwpdi cc [0/1]\n");
 		printf("  bwpdi vp [0/1]\n");
 		printf("  bwpdi device -m [MAC]\n");
+		printf("  bwpdi device_info -m [MAC]\n");
 		printf("  bwpdi get_vp [0/2]\n");
+		printf("  bwpdi wrs_url\n");
+		printf("  bwpdi rewrite path1 path2 path3\n");
+		printf("  bwpdi checksize path size\n");
+		printf("  bwpdi extract path\n");
+		printf("  bwpdi get_app_patrol\n");
+		printf("  bwpdi get_anomaly [0/2]\n");
 		return 0;
 	}
 

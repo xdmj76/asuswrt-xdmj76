@@ -15,6 +15,7 @@ OBJS = spectrum.o
 endif
 
 ifeq ($(wildcard $(TOP)/spectrum/*.c),)
+all:
 	-cp -f $(TOP)/spectrum/prebuilt/spectrum spectrum
 else
 all: spectrum

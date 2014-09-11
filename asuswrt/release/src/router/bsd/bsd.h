@@ -210,7 +210,7 @@ extern int bsd_msglevel;
 
 #define BSD_MAX_PRIO 		0x4
 #define BSD_IFNAME_SIZE		16
-#define BSD_MAX_INTF		2
+#define BSD_MAX_INTF		3
 #define BSD_MAXBSSCFG		WL_MAXBSSCFG
 
 #define BSD_SCHEME			0

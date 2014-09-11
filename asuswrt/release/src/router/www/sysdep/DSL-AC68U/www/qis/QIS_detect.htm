@@ -63,7 +63,9 @@ function getWANStatus(){
 							(dsl_autodet_state == "initializing") ||
 							(dsl_autodet_state == "wait_for_init") ||
 							(dsl_autodet_state == "up") || 
-							(dsl_autodet_state == "down") || 
+							(dsl_autodet_state == "down") ||
+							(dsl_autodet_state == "Detecting") ||
+							(dsl_autodet_state == "wait") ||
 							(dsl_autodet_state == ""))
 			{
 					if(dsl_autodet_state == "up" && wan_type == "PTM"){
@@ -182,7 +184,6 @@ function gotoUserManualSet(){
 		<td>
 		</td>
 		<td class="test_css">
-			<!-- strong><span><#QIS_NoCable_title#></span></strong -->
 			<br>
 			<strong><span><#QIS_NoCable_desc#></span></strong>
 		</td>

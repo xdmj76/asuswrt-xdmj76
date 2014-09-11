@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <html xmlns:v>
 <head>
-<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7"/>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta HTTP-EQUIV="Pragma" CONTENT="no-cache">
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
@@ -110,24 +110,24 @@ for(i=0;i<bl_version_array.length;i++){
 
 var wireless = [<% wl_auth_list(); %>];	// [[MAC, associated, authorized], ...]
 var mcast_rates = [
-	["HTMIX 6.5/15", "14", 0, 1],
-	["HTMIX 13/30",	 "15", 0, 1],
-	["HTMIX 19.5/45","16", 0, 1],
-	["HTMIX 13/30",	 "17", 0, 1],
-	["HTMIX 26/60",	 "18", 0, 1],
-	["HTMIX 130/144","13", 0, 1],
-	["OFDM 6",	 "4",  0, 0],
-	["OFDM 9",	 "5",  0, 0],
-	["OFDM 12",	 "7",  0, 0],
-	["OFDM 18",	 "8",  0, 0],
-	["OFDM 24",	 "9",  0, 0],
-	["OFDM 36",	 "10", 0, 0],
-	["OFDM 48",	 "11", 0, 0],
-	["OFDM 54",	 "12", 0, 0],
-	["CCK 1",	 "1",  1, 0],
-	["CCK 2",	 "2",  1, 0],
-	["CCK 5.5",	 "3",  1, 0],
-	["CCK 11",	 "6",  1, 0]
+	["HTMIX 6.5/15", "14", 0, 1, 1],
+	["HTMIX 13/30",	 "15", 0, 1, 1],
+	["HTMIX 19.5/45","16", 0, 1, 1],
+	["HTMIX 13/30",	 "17", 0, 1, 2],
+	["HTMIX 26/60",	 "18", 0, 1, 2],
+	["HTMIX 130/144","13", 0, 1, 2],
+	["OFDM 6",	 "4",  0, 0, 1],
+	["OFDM 9",	 "5",  0, 0, 1],
+	["OFDM 12",	 "7",  0, 0, 1],
+	["OFDM 18",	 "8",  0, 0, 1],
+	["OFDM 24",	 "9",  0, 0, 1],
+	["OFDM 36",	 "10", 0, 0, 1],
+	["OFDM 48",	 "11", 0, 0, 1],
+	["OFDM 54",	 "12", 0, 0, 1],
+	["CCK 1",	 "1",  1, 0, 1],
+	["CCK 2",	 "2",  1, 0, 1],
+	["CCK 5.5",	 "3",  1, 0, 1],
+	["CCK 11",	 "6",  1, 0, 1]
 ];
 
 var flag_week = 0;
@@ -137,6 +137,7 @@ var wl_version = "<% nvram_get("wl_version"); %>";
 var sdk_version_array = new Array();
 sdk_version_array = wl_version.split(".");
 var sdk_6 = sdk_version_array[0] == "6" ? true:false
+var sdk_7 = sdk_version_array[0] == "7" ? true:false
 var wl_user_rssi_onload = '<% nvram_get("wl_user_rssi"); %>';
 
 function initial(){
@@ -148,9 +149,10 @@ function initial(){
 	else
 		$("rssiTr").style.display = "none";
 
-	if(!band5g_support){	
+	if(!band5g_support)
 		$("wl_unit_field").style.display = "none";
-	}
+	if(wl_info.band5g_2_support)
+		regen_band();
 
 	if(sw_mode == "2"){
 		var _rows = $("WAdvTable").rows;
@@ -185,11 +187,15 @@ function initial(){
 		}
 	}
 	
-	if(sdk_6 && !Rawifi_support){		// for BRCM new SDK 6.x
+	if((sdk_6 || sdk_7) && !Rawifi_support){		// for BRCM new SDK 6.x && SDK 7.x
 		inputCtrl(document.form.wl_ampdu_mpdu, 1);
-		inputCtrl(document.form.wl_ack_ratio, 1);
 	}else{
 		inputCtrl(document.form.wl_ampdu_mpdu, 0);
+	}
+
+	if(sdk_6 && !Rawifi_support){		// for BRCM new SDK 6.x
+		inputCtrl(document.form.wl_ack_ratio, 1);
+	}else{
 		inputCtrl(document.form.wl_ack_ratio, 0);
 	}
 	
@@ -200,7 +206,7 @@ function initial(){
 
 	if('<% nvram_get("wl_unit"); %>' == '1'){ // 5GHz
 		if(	based_modelid == "RT-AC3200" ||
-			based_modelid == "RT-AC69U" || 
+			based_modelid == "RT-AC69U" || based_modelid == "TM-AC1900" ||
 			based_modelid == "RT-AC56S" || based_modelid == "RT-AC56U" ||
 			based_modelid == "RT-AC68U" || based_modelid == "RT-AC68U_V2" || based_modelid == "DSL-AC68U" ||
 			based_modelid == "RT-AC87U" || based_modelid == "EA-AC87")
@@ -210,7 +216,7 @@ function initial(){
 		}	
 
 		if(	based_modelid == "RT-AC3200" ||
-			based_modelid == "RT-AC69U" ||
+			based_modelid == "RT-AC69U" || based_modelid == "TM-AC1900" ||
 			based_modelid == "RT-AC56S" || based_modelid == "RT-AC56U" ||
 			based_modelid == "RT-AC68U" || based_modelid == "RT-AC68U_V2" || based_modelid == "DSL-AC68U" ||
 			based_modelid == "RT-AC87U" || based_modelid == "EA-AC87")
@@ -222,7 +228,7 @@ function initial(){
 		if(	based_modelid == "RT-AC3200" ||
 			based_modelid == "RT-N18U" ||
 			based_modelid == "RT-N65U" ||
-			based_modelid == "RT-AC69U" ||
+			based_modelid == "RT-AC69U" || based_modelid == "TM-AC1900" ||
 			based_modelid == "RT-AC87U" ||
 			based_modelid == "RT-AC56S" || based_modelid == "RT-AC56U" || 
 			based_modelid == "RT-AC68U" || based_modelid == "RT-AC68U_V2" || based_modelid == "DSL-AC68U")
@@ -232,7 +238,7 @@ function initial(){
 
 		if(	based_modelid == "RT-AC3200" ||
 			based_modelid == "RT-N18U" ||
-			based_modelid == "RT-AC69U" ||
+			based_modelid == "RT-AC69U" || based_modelid == "TM-AC1900" ||
 			based_modelid == "RT-AC87U" ||
 			based_modelid == "RT-AC68U" || based_modelid == "RT-AC68U_V2" || based_modelid == "DSL-AC68U")
 		{
@@ -241,7 +247,7 @@ function initial(){
 			else
 				inputCtrl(document.form.wl_turbo_qam, 1);
 				
-			$('wl_txbf_desc').innerHTML = "Explicit Beamforming";
+			$('wl_txbf_desc').innerHTML = "<#WLANConfig11b_x_ExpBeam#>";
 			inputCtrl(document.form.wl_txbf, 1);
 			inputCtrl(document.form.wl_itxbf, 1);
 		}	
@@ -249,10 +255,17 @@ function initial(){
 
 	var mcast_rate = '<% nvram_get("wl_mrate_x"); %>';
 	var mcast_unit = '<% nvram_get("wl_unit"); %>';
+	var HtTxStream;
+	if (mcast_unit == 1)
+		HtTxStream = '<% nvram_get("wl1_HT_TxStream"); %>';
+	else
+		HtTxStream = '<% nvram_get("wl0_HT_TxStream"); %>';
 	for (var i = 0; i < mcast_rates.length; i++) {
 		if (mcast_unit == '1' && mcast_rates[i][2]) // 5Ghz && CCK
 			continue;
 		if (!Rawifi_support && mcast_rates[i][3]) // BCM && HTMIX
+			continue;
+		if (Rawifi_support && HtTxStream < mcast_rates[i][4]) // ralink && HtTxStream
 			continue;
 		add_option(document.form.wl_mrate_x,
 			mcast_rates[i][0], mcast_rates[i][1],
@@ -295,13 +308,14 @@ function initial(){
 		$("wl_wme_apsd_field").style.display = "none";
 		$("wl_ampdu_mpdu_field").style.display = "none";
 		$("wl_ack_ratio_field").style.display = "none";
+		document.getElementById('wl_80211h_tr').style.display = "";
 	}
 	
 	/*Airtime fairness, only for Broadcom ARM platform, except RT-AC87U 5G*/
 	if(	based_modelid == "RT-N18U" ||
 		based_modelid == "RT-AC56U" || based_modelid == "RT-AC56S" ||
 		based_modelid == "RT-AC68U" || based_modelid == "RT-AC68U_V2" || based_modelid == "DSL-AC68U" ||
-		based_modelid == "RT-AC69U" ||
+		based_modelid == "RT-AC69U" || based_modelid == "TM-AC1900" ||
 		based_modelid == "RT-AC87U"){
 		
 		inputCtrl(document.form.wl_atf, 1);
@@ -312,8 +326,9 @@ function initial(){
 		inputCtrl(document.form.wl_atf, 0);
 	}
 	
-	if(based_modelid != "RT-AC87U")
+	if(based_modelid != "RT-AC87U"){
 		check_ampdu_rts();
+	}
 }
 
 function adjust_tx_power(){
@@ -322,7 +337,7 @@ function adjust_tx_power(){
 	var translated_value = 0;
 	
 	if(!power_support){
-		inputHideCtrl(document.form.wl_txpower, 0);
+		$("wl_txPower_field").style.display = "none";
 	}
 	else{
 		if(power_value_old != ""){
@@ -395,8 +410,9 @@ function validForm(){
 			|| !validate_timerange(document.form.wl_radio_time_x_startmin, 1) || !validate_timerange(document.form.wl_radio_time2_x_startmin, 1)
 			|| !validate_timerange(document.form.wl_radio_time_x_endhour, 2) || !validate_timerange(document.form.wl_radio_time2_x_endhour, 2)
 			|| !validate_timerange(document.form.wl_radio_time_x_endmin, 3) || !validate_timerange(document.form.wl_radio_time2_x_endmin, 3)
-			)
+			){
 		return false;
+	}
 	
 	if(power_support && !Rawifi_support){
 		// MODELDEP
@@ -675,6 +691,7 @@ function set_power(power_value){
 <input type="hidden" name="wl0_country_code" value="<% nvram_get("wl0_country_code"); %>" disabled>
 <input type="hidden" name="wl_HW_switch" value="<% nvram_get("wl_HW_switch"); %>" disabled>
 <input type="hidden" name="wl_TxPower" value="<% nvram_get("wl_TxPower"); %>" >
+<input type="hidden" name="wl1_80211h_orig" value="<% nvram_get("wl1_80211h"); %>" >
 
 <table class="content" align="center" cellpadding="0" cellspacing="0">
 	<tr>
@@ -954,7 +971,7 @@ function set_power(power_value){
 						</td>
 					</tr>
 
-					<tr> <!-- MODELDEP: RT-AC3200 / RT-AC68U / RT-AC68U_V2 / RT-AC69U /DSL-AC68U Only  -->
+					<tr> <!-- MODELDEP: RT-AC3200 / RT-AC68U / RT-AC68U_V2 / RT-AC69U / TM-AC1900 / DSL-AC68U Only  -->
 						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(3,29);"><#WLANConfig11b_x_ReduceUSB3#></a></th>
 						<td>
 							<select name="usb_usb3" class="input_option">
@@ -993,6 +1010,18 @@ function set_power(power_value){
 						</td>
 					</tr>
 					<!-- [MODELDEP] end -->
+					<!--For 5GHz of RT-AC87U  -->
+					<tr id="wl_80211h_tr" style="display:none;">
+						<th><a class="hintstyle" href="javascript:void(0);" onClick="">IEEE 802.11h support</a></th>
+						<td>
+							<select name="wl1_80211h" class="input_option">
+									<option value="0" <% nvram_match("wl1_80211h", "0","selected"); %> ><#WLANConfig11b_WirelessCtrl_buttonname#></option>
+									<option value="1" <% nvram_match("wl1_80211h", "1","selected"); %> ><#WLANConfig11b_WirelessCtrl_button1name#></option>
+							</select>
+						</td>
+					</tr>
+					
+					
 					<!--Broadcom ARM platform only, except RT-AC87U(5G) -->
 					<tr>
 						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(3,28);">Airtime Fairness</a></th>
@@ -1005,7 +1034,7 @@ function set_power(power_value){
 					</tr>
 					
 					<tr id="wl_txbf_field">
-						<th><a id="wl_txbf_desc" class="hintstyle" href="javascript:void(0);" onClick="openHint(3,24);">Explicit Beamforming</a></th>
+						<th><a id="wl_txbf_desc" class="hintstyle" href="javascript:void(0);" onClick="openHint(3,24);"><#WLANConfig11b_x_ExpBeam#></a></th>
 						<td>
 							<select name="wl_txbf" class="input_option">
 									<option value="0" <% nvram_match("wl_txbf", "0","selected"); %> ><#WLANConfig11b_WirelessCtrl_buttonname#></option>
@@ -1014,7 +1043,7 @@ function set_power(power_value){
 						</td>
 					</tr>					
 					<tr id="wl_itxbf_field">
-						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(3,25);">Universal Beamforming</a></th>
+						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(3,25);"><#WLANConfig11b_x_uniBeam#></a></th>
 						<td>
 							<select name="wl_itxbf" class="input_option" disabled>
 									<option value="0" <% nvram_match("wl_itxbf", "0","selected"); %> ><#WLANConfig11b_WirelessCtrl_buttonname#></option>
@@ -1023,7 +1052,7 @@ function set_power(power_value){
 						</td>
 					</tr>					
 
-					<tr>
+					<tr id="wl_txPower_field">
 						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(0, 16);"><#WLANConfig11b_TxPower_itemname#></a></th>
 						<td>
 							<div>

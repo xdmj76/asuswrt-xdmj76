@@ -976,6 +976,8 @@ static int dump_file(webs_t wp, char *filename)
 	return (ret);
 }
 
+extern int wl_wps_info(int eid, webs_t wp, int argc, char_t **argv, int unit);
+
 static int
 ej_dump(int eid, webs_t wp, int argc, char_t **argv)
 {
@@ -1011,10 +1013,14 @@ ej_dump(int eid, webs_t wp, int argc, char_t **argv)
 		return (ej_route_table(eid, wp, 0, NULL));
 	else if (strcmp(file, "wps_info.log")==0)
 	{
+#ifndef RTAC3200
 		if (nvram_match("wps_band", "0"))
 			return (ej_wps_info_2g(eid, wp, 0, NULL));
 		else
 			return (ej_wps_info(eid, wp, 0, NULL));
+#else
+		return wl_wps_info(eid, wp, argc, argv, nvram_get_int("wps_band"));
+#endif
 	}
 #if 0
 	else if (strcmp(file, "apselect.log")==0)
@@ -1063,6 +1069,7 @@ ej_dump(int eid, webs_t wp, int argc, char_t **argv)
 		sprintf(filename, "/tmp/xdslissuestracking");
 		if(check_if_file_exist(filename)) {
 			eval("sed", "-i", "/PIN Code:/d", filename);
+			eval("sed", "-i", "/MAC Address:/d", filename);
 			eval("sed", "-i", "/E-mail:/d", filename);
 			ret += dump_file(wp, filename);
 			unlink(filename);
@@ -1680,6 +1687,15 @@ static int validate_apply(webs_t wp) {
 					change_passwd = 1;
 				}
 
+#ifdef RTCONFIG_HTTPS
+				if(!strcmp(name, "PM_SMTP_AUTH_PASS")){
+					_dprintf("PM_SMTP_AUTH_PASS match\n");
+					char pw_tmp[256];
+					memset(pw_tmp, 0, 256);
+					strncpy(pw_tmp, value,256);
+					strncpy(value, (char *) pwenc(pw_tmp),256);
+				}
+#endif
 				nvram_set(name, value);
 				nvram_modified = 1;
 				_dprintf("set %s=%s\n", name, value);
@@ -1782,6 +1798,10 @@ bool isNumber(const char*s) {
    return e != NULL && *e == (char)0;
 }
 
+#ifdef RTCONFIG_ROG
+#define ApiMaxNumRegister 32
+#define ApiMaxNumPortforward 32
+#define ApiMaxNumQos 32
 static int ej_set_variables(int eid, webs_t wp, int argc, char_t **argv) {
 	char *apiName;
 	char *apiAction;
@@ -1794,7 +1814,8 @@ static int ej_set_variables(int eid, webs_t wp, int argc, char_t **argv) {
 	int retStatus = 0;
 	char retList[65536]={0};
 	char *buf, *g, *p;
-	char nvramTmp[1024]={0}, strTmp[1024]={0};
+	char nvramTmp[4096]={0}, strTmp[4096]={0};
+	int iCurrentListNum = 0;
 
 	apiName = websGetVar(wp, "apiname", "");
 	apiAction = websGetVar(wp, "action", "");
@@ -1835,9 +1856,11 @@ static int ej_set_variables(int eid, webs_t wp, int argc, char_t **argv) {
                         }
 			else{
 				g = buf = strdup(nvram_safe_get("custom_clientlist"));
-				while (g) {
-
+				while (buf) {
 					if ((p = strsep(&g, "<")) == NULL) break;
+
+					iCurrentListNum++;
+
 					if((vstrsep(p, ">", &name, &mac, &group, &type, &callback, &keeparp)) != 6) continue;
 
 					if(!strcmp(webVar_2, mac)){
@@ -1845,6 +1868,10 @@ static int ej_set_variables(int eid, webs_t wp, int argc, char_t **argv) {
 						break;
 					}
 				}
+
+				// if this current list already is the maximum, can't be added.
+				if((iCurrentListNum-1) == ApiMaxNumRegister)
+					retStatus = 4;
 
 				if(retStatus == 0){
 					strcat(nvramTmp, "<");
@@ -1875,7 +1902,7 @@ static int ej_set_variables(int eid, webs_t wp, int argc, char_t **argv) {
 			else{
 				retStatus = 2;
 				g = buf = strdup(nvram_safe_get("custom_clientlist"));
-				while (g) {
+				while (buf) {
 					if ((p = strsep(&g, "<")) == NULL) break;
 					if((vstrsep(p, ">", &name, &mac, &group, &type, &callback, &keeparp)) != 6) continue;
 
@@ -1908,7 +1935,7 @@ static int ej_set_variables(int eid, webs_t wp, int argc, char_t **argv) {
 		else if(!strcmp(apiAction, "list")){
 			g = buf = strdup(nvram_safe_get("custom_clientlist"));
 			strcat(retList, "<list>\n");
-			while (g) {
+			while (buf) {
 				if ((p = strsep(&g, "<")) == NULL) break;
 				if((vstrsep(p, ">", &name, &mac, &group, &type, &callback, &keeparp)) != 6) continue;
 
@@ -1979,8 +2006,11 @@ static int ej_set_variables(int eid, webs_t wp, int argc, char_t **argv) {
 			}
 			else{
 				g = buf = strdup(nvram_safe_get("vts_rulelist"));
-				while (g) {
+				while (buf) {
 					if ((p = strsep(&g, "<")) == NULL) break;
+
+					iCurrentListNum++;
+
 					if((vstrsep(p, ">", &name, &rport, &lip, &lport, &proto)) != 5) continue;
 
 					if(!strcmp(webVar_1, name) && !strcmp(webVar_2, rport) &&
@@ -1991,6 +2021,10 @@ static int ej_set_variables(int eid, webs_t wp, int argc, char_t **argv) {
 						break;
 					}
 				}
+
+				// if this current list already is the maximum, can't be added.
+				if((iCurrentListNum-1) == ApiMaxNumPortforward)
+					retStatus = 4;
 
 				if(retStatus == 0){
 					strcat(nvramTmp, "<");
@@ -2025,7 +2059,7 @@ static int ej_set_variables(int eid, webs_t wp, int argc, char_t **argv) {
 			else{
 				retStatus = 2;
 				g = buf = strdup(nvram_safe_get("vts_rulelist"));
-				while (g) {
+				while (buf) {
 					if ((p = strsep(&g, "<")) == NULL) break;
 					if((vstrsep(p, ">", &name, &rport, &lip, &lport, &proto)) != 5) continue;
 
@@ -2060,7 +2094,7 @@ static int ej_set_variables(int eid, webs_t wp, int argc, char_t **argv) {
 		else if(!strcmp(apiAction, "list")){
 			g = buf = strdup(nvram_safe_get("vts_rulelist"));
 			strcat(retList, "<list>\n");
-			while (g) {
+			while (buf) {
 				if ((p = strsep(&g, "<")) == NULL) break;
 				if((vstrsep(p, ">", &name, &rport, &lip, &lport, &proto)) != 5) continue;
 
@@ -2149,8 +2183,11 @@ static int ej_set_variables(int eid, webs_t wp, int argc, char_t **argv) {
 			}
 			else{
 				g = buf = strdup(nvram_safe_get("qos_rulelist"));
-				while (g) {
+				while (buf) {
 					if ((p = strsep(&g, "<")) == NULL) break;
+
+					iCurrentListNum++;
+
 					if((vstrsep(p, ">", &desc, &addr, &port, &proto, &transferred, &prio)) != 6) continue;
 
 					if(!strcmp(webVar_1, desc) && !strcmp(webVar_2, addr) &&
@@ -2161,6 +2198,10 @@ static int ej_set_variables(int eid, webs_t wp, int argc, char_t **argv) {
 						break;
 					}
 				}
+
+				// if this current list already is the maximum, can't be added.
+				if((iCurrentListNum-1) == ApiMaxNumQos)
+					retStatus = 4;
 
 				if(retStatus == 0){
 					strcat(nvramTmp, "<");
@@ -2198,7 +2239,7 @@ static int ej_set_variables(int eid, webs_t wp, int argc, char_t **argv) {
 			else{
 				retStatus = 2;
 				g = buf = strdup(nvram_safe_get("qos_rulelist"));
-				while (g) {
+				while (buf) {
 					if ((p = strsep(&g, "<")) == NULL) break;
 					if((vstrsep(p, ">", &desc, &addr, &port, &proto, &transferred, &prio)) != 6) continue;
 
@@ -2243,7 +2284,7 @@ static int ej_set_variables(int eid, webs_t wp, int argc, char_t **argv) {
 			sprintf(strTmp, "<downbw>%s</downbw>\n", nvram_get("qos_ibw"));
 			strcat(retList, strTmp);
 
-			while (g) {
+			while (buf) {
 				if ((p = strsep(&g, "<")) == NULL) break;
 				if((vstrsep(p, ">", &desc, &addr, &port, &proto, &transferred, &prio)) != 6) continue;
 
@@ -2272,12 +2313,14 @@ static int ej_set_variables(int eid, webs_t wp, int argc, char_t **argv) {
 		retStatus = 3;
 	}
 
+	free(buf);
 	websWrite(wp, "<status>%d</status>\n", retStatus);
 	if(!strcmp(apiAction, "list"))
 		websWrite(wp, "%s", retList);
 
 	return 0;
 }
+#endif
 
 static int ej_update_variables(int eid, webs_t wp, int argc, char_t **argv) {
 	char *action_mode;
@@ -4047,6 +4090,7 @@ static int ej_get_client_detail_info(int eid, webs_t wp, int argc, char_t **argv
 		memset(output_buf, 0, 256);
 		memset(devname, 0, LINE_SIZE);
 
+	    if(p_client_info_tab->exist[i]==1) {
 		len = strlen( (char *) p_client_info_tab->device_name[i]);
 		for (j=0; (j < len) && (j < LINE_SIZE-1); j++) {
 			character = p_client_info_tab->device_name[i][j];
@@ -4071,6 +4115,7 @@ static int ej_get_client_detail_info(int eid, webs_t wp, int argc, char_t **argv
 		websWrite(wp, output_buf);
 		if(i < p_client_info_tab->ip_mac_num-1)
 			websWrite(wp, ",");
+	    }
 	}
 	file_unlock(lock);
 
@@ -4140,7 +4185,7 @@ static int ej_get_changed_status(int eid, webs_t wp, int argc, char_t **argv){
 	char *arp_info = read_whole_file("/proc/net/arp");
 #ifdef RTCONFIG_USB
 	char *disk_info = read_whole_file(PARTITION_FILE);
-	char *mount_info = read_whole_file("/proc/mounts");
+	char *mount_info = read_whole_file(MOUNT_FILE);
 #endif
 	u32 arp_info_len, disk_info_len, mount_info_len;
 //	u32 arp_change, disk_change;
@@ -4192,14 +4237,14 @@ static int ej_show_usb_path(int eid, webs_t wp, int argc, char_t **argv){
 	struct dirent *interface;
 	char usb_port[8], port_path[8], *ptr;
 	int port_num, port_order, hub_order;
-	char all_usb_path[MAX_USB_PORT][MAX_USB_HUB_PORT][2][16]; // MAX USB hub port number is 6.
-	char prefix[] = "usb_pathXXXXXXXXXXXXXXXXX_";
+	char all_usb_path[MAX_USB_PORT][MAX_USB_HUB_PORT][3][16]; // MAX USB hub port number is 6.
+	char prefix[] = "usb_pathXXXXXXXXXXXXXXXXX_", tmp[100];
 	int port_set, got_port, got_hub;
 
 	if((bus_usb = opendir(USB_DEVICE_PATH)) == NULL)
 		return -1;
 
-	memset(all_usb_path, 0, MAX_USB_PORT*MAX_USB_HUB_PORT*2*16);
+	memset(all_usb_path, 0, MAX_USB_PORT*MAX_USB_HUB_PORT*3*16);
 
 	while((interface = readdir(bus_usb)) != NULL){
 		if(interface->d_name[0] == '.')
@@ -4227,6 +4272,7 @@ static int ej_show_usb_path(int eid, webs_t wp, int argc, char_t **argv){
 		strncpy(all_usb_path[port_order][hub_order][0], port_path, 16);
 		snprintf(prefix, sizeof(prefix), "usb_path%s", port_path);
 		strncpy(all_usb_path[port_order][hub_order][1], nvram_safe_get(prefix), 16);
+		strncpy(all_usb_path[port_order][hub_order][2], nvram_safe_get(strcat_r(prefix, "_speed", tmp)), 16);
 	}
 	closedir(bus_usb);
 
@@ -4253,7 +4299,7 @@ static int ej_show_usb_path(int eid, webs_t wp, int argc, char_t **argv){
 				else
 					websWrite(wp, ", ");
 
-				websWrite(wp, "[\"%s\", \"%s\"]", all_usb_path[port_order][hub_order][0], all_usb_path[port_order][hub_order][1]);
+				websWrite(wp, "[\"%s\", \"%s\", \"%s\"]", all_usb_path[port_order][hub_order][0], all_usb_path[port_order][hub_order][1], all_usb_path[port_order][hub_order][2]);
 			}
 		}
 
@@ -4742,7 +4788,7 @@ static int ej_get_modem_info(int eid, webs_t wp, int argc, char_t **argv){
 	char port_path[8];
 	char act_node[32], act_port_path[8];
 	long now;
-	char *cmd[] = {"modem_signal.sh", NULL};
+	char *cmd[] = {"modem_status.sh", "signal", NULL};
 	int pid;
 
 	snprintf(act_node, 32, "%s", nvram_safe_get("usb_modem_act_path"));
@@ -4877,6 +4923,27 @@ static int ej_get_modem_info(int eid, webs_t wp, int argc, char_t **argv){
 
 	return 0;
 }
+
+static int ej_check_modem_sim(int eid, webs_t wp, int argc, char_t **argv){
+	char act_node[32], act_port_path[8];
+	char *cmd[] = {"modem_status.sh", "sim", NULL};
+	int pid;
+	int status;
+
+	snprintf(act_node, 32, "%s", nvram_safe_get("usb_modem_act_path"));
+	if(strlen(act_node) <= 0 || get_path_by_node(act_node, act_port_path, 8) == NULL){
+		websWrite(wp, "0");
+		return 0;
+	}
+
+	status = nvram_get_int("usb_modem_act_sim");
+	if(!status)
+		_eval(cmd, NULL, 0, &pid);
+
+	websWrite(wp, "%d", status);
+
+	return 0;
+}
 #else
 static int ej_show_usb_path(int eid, webs_t wp, int argc, char_t **argv){
 	websWrite(wp, "[]");
@@ -4948,6 +5015,134 @@ int ej_shown_language_css(int eid, webs_t wp, int argc, char **argv){
 	fclose(fp);
 
 	return 0;
+}
+
+int ej_shown_language_option(int eid, webs_t wp, int argc, char **argv){
+	struct language_table *pLang = NULL;
+	char lang[4];
+	int len;
+#ifdef RTCONFIG_AUTODICT
+	FILE *fp = fopen("Lang_Hdr.txt", "r");
+#else
+	FILE *fp = fopen("Lang_Hdr", "r");
+#endif
+	char buffer[1024], key[16], target[16];
+	char *follow_info, *follow_info_end;
+
+	if (fp == NULL){
+		fprintf(stderr, "No English dictionary!\n");
+		return 0;
+	}
+
+#ifdef RTCONFIG_AUTODICT
+	// skip <feff>
+	fread(key, 1, 3, fp);
+#endif
+
+	memset(lang, 0, 4);
+	strcpy(lang, nvram_safe_get("preferred_lang"));
+
+	while (1) {
+		memset(buffer, 0, sizeof(buffer));
+		if ((follow_info = fgets(buffer, sizeof(buffer), fp)) != NULL){
+			if (strncmp(follow_info, "LANG_", 5))    // 5 = strlen("LANG_")
+				continue;
+
+			follow_info += 5;
+			follow_info_end = strstr(follow_info, "=");
+			len = follow_info_end-follow_info;
+			memset(key, 0, sizeof(key));
+			strncpy(key, follow_info, len);
+
+			for (pLang = language_tables; pLang->Lang != NULL; ++pLang){
+				if (strcmp(key, pLang->Target_Lang))
+					continue;
+				follow_info = follow_info_end+1;
+				follow_info_end = strstr(follow_info, "\n");
+				len = follow_info_end-follow_info;
+				memset(target, 0, sizeof(target));
+				strncpy(target, follow_info, len);
+
+				if (!strcmp(key, lang))
+					websWrite(wp, "<option value=\"%s\" selected>%s</option>\\n", key, target);
+				else
+					websWrite(wp, "<option value=\"%s\">%s</option>\\n", key, target);
+
+				break;
+			}
+		}
+		else
+			break;
+	}
+	fclose(fp);
+
+	return 0;
+}
+
+//andi
+char*
+send_action(char *ftp_url,int port)
+{
+        char str[1024]={0};
+        char buf[1024]={0};
+	int my_fd;
+	if ((my_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+            perror("socket");
+            return NULL;
+        }
+
+        struct sockaddr_in their_addr; /* connector's address information */
+        bzero(&(their_addr), sizeof(their_addr)); /* zero the rest of the struct */
+        their_addr.sin_family = AF_INET; /* host byte order */
+        their_addr.sin_port = htons(port); /* short, network byte order */
+        their_addr.sin_addr.s_addr = INADDR_ANY;
+        //their_addr.sin_addr.s_addr = ((struct in_addr *)(he->h_addr))->s_addr;
+        bzero(&(their_addr.sin_zero), sizeof(their_addr.sin_zero)); /* zero the rest of the struct */
+
+        if (connect(my_fd, (struct sockaddr *)&their_addr,sizeof(struct sockaddr)) == -1) {
+            perror("connect");
+	    close(my_fd);
+            return NULL;
+        }
+        sprintf(str,"refresh@%s",ftp_url);
+	_dprintf("socket:%s\n",str);
+        if (send(my_fd, str, strlen(str), 0) == -1) {
+            perror("send");
+	    close(my_fd);
+            return NULL;
+        }
+	
+	int len;
+	while ((len = recv(my_fd, buf, 1024, 0))) {
+        	//_dprintf("BUF:%s\n",buf);
+		close(my_fd);
+		return strdup(buf);
+    	}
+	
+        close(my_fd);
+	return NULL;
+}
+
+//andi
+static int
+ftpServerTree_cgi(webs_t wp, char_t *urlPrefix, char_t *webDir, int arg,
+		char_t *url, char_t *path, char_t *query)
+{
+        char *ftp_url;
+        ftp_url = websGetVar(wp, "path","");
+    	_dprintf("URL:%s\n",ftp_url);
+	
+        char *buf = send_action(ftp_url,3568);
+	_dprintf("BUF:%s\n",buf);
+	if(buf == NULL)
+	{
+		websWrite(wp,"NULL");
+		return 0;
+	}
+	else
+		websWrite(wp,buf);	
+	
+        return 0;
 }
 
 #ifdef  __CONFIG_NORTON__
@@ -5073,6 +5268,8 @@ apply_cgi(webs_t wp, char_t *urlPrefix, char_t *webDir, int arg,
 		nvram_set("lan_ipaddr", "192.168.1.1");
 		websApply(wp, "Restarting.asp");
 		shutdown(fileno(wp), SHUT_RDWR);
+		nvram_set("restore_defaults", "1");
+		nvram_commit();
 		sys_default();
 		return (0);
 	}
@@ -5177,10 +5374,17 @@ wps_finish:
 	}
 	else if (!strcmp(action_mode, "refresh_networkmap"))
 	{
+		nvram_set("refresh_networkmap", "1");
 		doSystem("killall -%d networkmap", SIGUSR1);
 
 		websRedirect(wp, current_url);
 	}
+        else if (!strcmp(action_mode, "update_client_list"))
+        {
+                doSystem("killall -%d networkmap", SIGUSR1);
+
+                websRedirect(wp, current_url);
+        }
 	else if (!strcmp(action_mode, "restore_module"))
 	{
 		action_para = websGetVar(wp, "module_prefix","");
@@ -5364,6 +5568,13 @@ do_auth(char *userid, char *passwd, char *realm)
 		strncpy(passwd, UserPass, AUTH_MAX);
 	}
 	strncpy(realm, ProductID, AUTH_MAX);
+}
+
+//andi
+static void
+do_ftpServerTree_cgi(char *url, FILE *stream)
+{
+    ftpServerTree_cgi(stream, NULL, NULL, 0, url, NULL, NULL);
 }
 
 static void
@@ -6168,6 +6379,7 @@ struct mime_handler mime_handlers[] = {
 	{ "**.js",  "text/javascript", no_cache_IE7, NULL, do_ej, do_auth },
 	{ "**.cab", "text/txt", NULL, NULL, do_file, do_auth },
 	{ "**.CFG", "application/force-download", NULL, NULL, do_prf_file, do_auth },
+	{ "ftpServerTree.cgi*", "text/html", no_cache_IE7, do_html_post_and_get, do_ftpServerTree_cgi, do_auth },//andi
 	{ "**.ovpn", "application/force-download", NULL, NULL, do_prf_ovpn_file, do_auth },
 	{ "apply.cgi*", "text/html", no_cache_IE7, do_html_post_and_get, do_apply_cgi, do_auth },
 	{ "applyapp.cgi*", "text/html", no_cache_IE7, do_html_post_and_get, do_apply_cgi, do_auth },
@@ -6221,11 +6433,19 @@ struct except_mime_handler except_mime_handlers[] = {
 	{ "alertImg.gif", MIME_EXCEPTION_NOAUTH_ALL},
 	{ "error_page.htm", MIME_EXCEPTION_NOAUTH_ALL},
 	{ "jquery.js", MIME_EXCEPTION_NOAUTH_ALL},
+	{ "iui/registerEvent.js", MIME_EXCEPTION_NOAUTH_ALL},
+	{ "iui/default.css", MIME_EXCEPTION_NOAUTH_ALL},
+	{ "iui/tmo-logo.png", MIME_EXCEPTION_NOAUTH_ALL},
+	{ "iui/cellspot_logo.png", MIME_EXCEPTION_NOAUTH_ALL},
 	{ "gotoHomePage.htm", MIME_EXCEPTION_NOAUTH_ALL},
 	{ "update_appstate.asp", MIME_EXCEPTION_NOAUTH_ALL},
 	{ "update_applist.asp", MIME_EXCEPTION_NOAUTH_ALL},
 	{ "update_cloudstatus.asp", MIME_EXCEPTION_NOAUTH_ALL},
 	{ "blocking.asp", MIME_EXCEPTION_NOAUTH_ALL},
+	{ "images/New_ui/TM_product.png", MIME_EXCEPTION_NOAUTH_ALL},
+#ifdef RTCONFIG_TMOBILE
+	{ "MobileQIS_Login.asp", MIME_EXCEPTION_NOAUTH_ALL},
+#endif
 	{ "*.gz", MIME_EXCEPTION_NOAUTH_ALL},
 	{ "*.tgz", MIME_EXCEPTION_NOAUTH_ALL},
 	{ "*.zip", MIME_EXCEPTION_NOAUTH_ALL},
@@ -6376,25 +6596,24 @@ int
 count_sddev_mountpoint()
 {
 	FILE *procpt;
-	char line[256], devname[32], mpname[32], system_type[10], mount_mode[96];
+	char line[PATH_MAX], devname[32], mpname[32], system_type[10], mount_mode[PATH_MAX];
 	int dummy1, dummy2, count = 0;
 
-	if ((procpt = fopen("/proc/mounts", "r")) != NULL)
-	while (fgets(line, sizeof(line), procpt))
-	{
-		if (sscanf(line, "%s %s %s %s %d %d", devname, mpname, system_type, mount_mode, &dummy1, &dummy2) != 6)
-			continue;
+	if((procpt = fopen(MOUNT_FILE, "r")) != NULL){
+		while(fgets(line, sizeof(line), procpt)){
+			if(sscanf(line, "%s %s %s %s %d %d", devname, mpname, system_type, mount_mode, &dummy1, &dummy2) != 6)
+				continue;
 
-		if (strstr(devname, "/dev/sd"))
-			count++;
+			if(strstr(devname, "/dev/sd"))
+				count++;
+		}
 	}
 
-	if (procpt)
+	if(procpt)
 		fclose(procpt);
 
 	return count;
 }
-
 
 static int notify_rc_for_nas(char *cmd)
 {
@@ -8114,6 +8333,261 @@ int ej_UI_cloud_status(int eid, webs_t wp, int argc, char **argv){
 	return 0;
 }
 
+int ej_UI_cloud_dropbox_status(int eid, webs_t wp, int argc, char **argv){
+	FILE *fp = fopen("/tmp/smartsync/.logs/dropbox", "r");
+	char line[PATH_MAX], buf[PATH_MAX], dest[PATH_MAX];
+	int line_num;
+	char status[16], mounted_path[PATH_MAX], target_obj[PATH_MAX], error_msg[PATH_MAX], full_capa[PATH_MAX], used_capa[PATH_MAX], rule_num[PATH_MAX];
+
+	if(fp == NULL){
+		websWrite(wp, "cloud_dropbox_status=\"ERROR\";\n");
+		websWrite(wp, "cloud_dropbox_obj=\"\";\n");
+		websWrite(wp, "cloud_dropbox_msg=\"\";\n");
+		websWrite(wp, "cloud_dropbox_fullcapa=\"\";\n");
+		websWrite(wp, "cloud_dropbox_usedcapa=\"\";\n");
+		websWrite(wp, "cloud_dropbox_rule_num=\"\";\n");
+		return 0;
+	}
+
+	memset(status, 0, 16);
+	memset(mounted_path, 0, PATH_MAX);
+	memset(target_obj, 0, PATH_MAX);
+	memset(error_msg, 0, PATH_MAX);
+	memset(full_capa, 0, PATH_MAX);
+	memset(used_capa, 0, PATH_MAX);
+	memset(rule_num, 0, PATH_MAX);
+
+	memset(line, 0, PATH_MAX);
+	line_num = 0;
+	while(fgets(line, PATH_MAX, fp)){
+		++line_num;
+		line[strlen(line)-1] = 0;
+
+		if(strstr(line, "STATUS") != NULL){
+			strncpy(status, convert_cloudsync_status(line), 16);
+		}
+		else if(strstr(line, "MOUNT_PATH") != NULL){
+			memset(buf, 0, PATH_MAX);
+			substr(dest, line, 11, PATH_MAX);
+			char_to_ascii(buf, dest);
+			strcpy(mounted_path, buf);
+		}
+		else if(strstr(line, "FILENAME") != NULL){
+			substr(dest, line, 9, PATH_MAX);
+			strcpy(target_obj, dest); // support Chinese
+			break;
+		}
+		else if(strstr(line, "ERR_MSG") != NULL){
+			substr(dest, line, 8, PATH_MAX);
+			strcpy(error_msg, dest);
+		}
+		else if(strstr(line, "TOTAL_SPACE") != NULL){
+			substr(dest, line, 12, PATH_MAX);
+			strcpy(full_capa, dest);
+		}
+		else if(strstr(line, "USED_SPACE") != NULL){
+			substr(dest, line, 11, PATH_MAX);
+			strcpy(used_capa, dest);
+		}
+		else if(strstr(line, "RULENUM") != NULL){
+			substr(dest, line, 8, PATH_MAX);
+			strcpy(rule_num, dest);
+		}
+		
+		memset(line, 0, PATH_MAX);
+	}
+	fclose(fp);
+
+	if(!line_num){
+		websWrite(wp, "cloud_dropbox_status=\"ERROR\";\n");
+		websWrite(wp, "cloud_dropbox_obj=\"\";\n");
+		websWrite(wp, "cloud_dropbox_msg=\"\";\n");
+		websWrite(wp, "cloud_dropbox_fullcapa=\"\";\n");
+		websWrite(wp, "cloud_dropbox_usedcapa=\"\";\n");
+		websWrite(wp, "cloud_dropbox_rule_num=\"\";\n");
+	}
+	else{
+		websWrite(wp, "cloud_dropbox_status=\"%s\";\n", status);
+		websWrite(wp, "cloud_dropbox_obj=\"%s\";\n", target_obj);
+		websWrite(wp, "cloud_dropbox_msg=\"%s\";\n", error_msg);
+		websWrite(wp, "cloud_dropbox_fullcapa=\"%s\";\n", full_capa);
+		websWrite(wp, "cloud_dropbox_usedcapa=\"%s\";\n", used_capa);
+		websWrite(wp, "cloud_dropbox_rule_num=\"%s\";\n", rule_num);
+	}
+
+	return 0;
+}
+
+int ej_UI_cloud_ftpclient_status(int eid, webs_t wp, int argc, char **argv){
+	FILE *fp = fopen("/tmp/smartsync/.logs/ftpclient", "r");
+	char line[PATH_MAX], buf[PATH_MAX], dest[PATH_MAX];
+	int line_num;
+	char status[16], mounted_path[PATH_MAX], target_obj[PATH_MAX], error_msg[PATH_MAX], full_capa[PATH_MAX], used_capa[PATH_MAX], rule_num[PATH_MAX];
+
+	if(fp == NULL){
+		websWrite(wp, "cloud_ftpclient_status=\"ERROR\";\n");
+		websWrite(wp, "cloud_ftpclient_obj=\"\";\n");
+		websWrite(wp, "cloud_ftpclient_msg=\"\";\n");
+		websWrite(wp, "cloud_ftpclient_fullcapa=\"\";\n");
+		websWrite(wp, "cloud_ftpclient_usedcapa=\"\";\n");
+		websWrite(wp, "cloud_ftpclient_rule_num=\"\";\n");
+		return 0;
+	}
+
+	memset(status, 0, 16);
+	memset(mounted_path, 0, PATH_MAX);
+	memset(target_obj, 0, PATH_MAX);
+	memset(error_msg, 0, PATH_MAX);
+	memset(full_capa, 0, PATH_MAX);
+	memset(used_capa, 0, PATH_MAX);
+	memset(rule_num, 0, PATH_MAX);
+
+	memset(line, 0, PATH_MAX);
+	line_num = 0;
+	while(fgets(line, PATH_MAX, fp)){
+		++line_num;
+		line[strlen(line)-1] = 0;
+
+		if(strstr(line, "STATUS") != NULL){
+			strncpy(status, convert_cloudsync_status(line), 16);
+		}
+		else if(strstr(line, "MOUNT_PATH") != NULL){
+			memset(buf, 0, PATH_MAX);
+			substr(dest, line, 11, PATH_MAX);
+			char_to_ascii(buf, dest);
+			strcpy(mounted_path, buf);
+		}
+		else if(strstr(line, "FILENAME") != NULL){
+			substr(dest, line, 9, PATH_MAX);
+			strcpy(target_obj, dest); // support Chinese
+			break;
+		}
+		else if(strstr(line, "ERR_MSG") != NULL){
+			substr(dest, line, 8, PATH_MAX);
+			strcpy(error_msg, dest);
+		}
+		else if(strstr(line, "TOTAL_SPACE") != NULL){
+			substr(dest, line, 12, PATH_MAX);
+			strcpy(full_capa, dest);
+		}
+		else if(strstr(line, "USED_SPACE") != NULL){
+			substr(dest, line, 11, PATH_MAX);
+			strcpy(used_capa, dest);
+		}
+		else if(strstr(line, "RULENUM") != NULL){
+			substr(dest, line, 8, PATH_MAX);
+			strcpy(rule_num, dest);
+		}
+		
+		memset(line, 0, PATH_MAX);
+	}
+	fclose(fp);
+
+	if(!line_num){
+		websWrite(wp, "cloud_ftpclient_status=\"ERROR\";\n");
+		websWrite(wp, "cloud_ftpclient_obj=\"\";\n");
+		websWrite(wp, "cloud_ftpclient_msg=\"\";\n");
+		websWrite(wp, "cloud_ftpclient_fullcapa=\"\";\n");
+		websWrite(wp, "cloud_ftpclient_usedcapa=\"\";\n");
+		websWrite(wp, "cloud_ftpclient_rule_num=\"\";\n");
+	}
+	else{
+		websWrite(wp, "cloud_ftpclient_status=\"%s\";\n", status);
+		websWrite(wp, "cloud_ftpclient_obj=\"%s\";\n", target_obj);
+		websWrite(wp, "cloud_ftpclient_msg=\"%s\";\n", error_msg);
+		websWrite(wp, "cloud_ftpclient_fullcapa=\"%s\";\n", full_capa);
+		websWrite(wp, "cloud_ftpclient_usedcapa=\"%s\";\n", used_capa);
+		websWrite(wp, "cloud_ftpclient_rule_num=\"%s\";\n", rule_num);
+	}
+
+	return 0;
+}
+
+int ej_UI_cloud_sambaclient_status(int eid, webs_t wp, int argc, char **argv){
+	FILE *fp = fopen("/tmp/smartsync/.logs/sambaclient", "r");
+	char line[PATH_MAX], buf[PATH_MAX], dest[PATH_MAX];
+	int line_num;
+	char status[16], mounted_path[PATH_MAX], target_obj[PATH_MAX], error_msg[PATH_MAX], full_capa[PATH_MAX], used_capa[PATH_MAX], rule_num[PATH_MAX];
+
+	if(fp == NULL){
+		websWrite(wp, "cloud_sambaclient_status=\"ERROR\";\n");
+		websWrite(wp, "cloud_sambaclient_obj=\"\";\n");
+		websWrite(wp, "cloud_sambaclient_msg=\"\";\n");
+		websWrite(wp, "cloud_sambaclient_fullcapa=\"\";\n");
+		websWrite(wp, "cloud_sambaclient_usedcapa=\"\";\n");
+		websWrite(wp, "cloud_sambaclient_rule_num=\"\";\n");
+		return 0;
+	}
+
+	memset(status, 0, 16);
+	memset(mounted_path, 0, PATH_MAX);
+	memset(target_obj, 0, PATH_MAX);
+	memset(error_msg, 0, PATH_MAX);
+	memset(full_capa, 0, PATH_MAX);
+	memset(used_capa, 0, PATH_MAX);
+	memset(rule_num, 0, PATH_MAX);
+
+	memset(line, 0, PATH_MAX);
+	line_num = 0;
+	while(fgets(line, PATH_MAX, fp)){
+		++line_num;
+		line[strlen(line)-1] = 0;
+
+		if(strstr(line, "STATUS") != NULL){
+			strncpy(status, convert_cloudsync_status(line), 16);
+		}
+		else if(strstr(line, "MOUNT_PATH") != NULL){
+			memset(buf, 0, PATH_MAX);
+			substr(dest, line, 11, PATH_MAX);
+			char_to_ascii(buf, dest);
+			strcpy(mounted_path, buf);
+		}
+		else if(strstr(line, "FILENAME") != NULL){
+			substr(dest, line, 9, PATH_MAX);
+			strcpy(target_obj, dest); // support Chinese
+			break;
+		}
+		else if(strstr(line, "ERR_MSG") != NULL){
+			substr(dest, line, 8, PATH_MAX);
+			strcpy(error_msg, dest);
+		}
+		else if(strstr(line, "TOTAL_SPACE") != NULL){
+			substr(dest, line, 12, PATH_MAX);
+			strcpy(full_capa, dest);
+		}
+		else if(strstr(line, "USED_SPACE") != NULL){
+			substr(dest, line, 11, PATH_MAX);
+			strcpy(used_capa, dest);
+		}
+		else if(strstr(line, "RULENUM") != NULL){
+			substr(dest, line, 8, PATH_MAX);
+			strcpy(rule_num, dest);
+		}
+		
+		memset(line, 0, PATH_MAX);
+	}
+	fclose(fp);
+
+	if(!line_num){
+		websWrite(wp, "cloud_sambaclient_status=\"ERROR\";\n");
+		websWrite(wp, "cloud_sambaclient_obj=\"\";\n");
+		websWrite(wp, "cloud_sambaclient_msg=\"\";\n");
+		websWrite(wp, "cloud_sambaclient_fullcapa=\"\";\n");
+		websWrite(wp, "cloud_sambaclient_usedcapa=\"\";\n");
+		websWrite(wp, "cloud_sambaclient_rule_num=\"\";\n");
+	}
+	else{
+		websWrite(wp, "cloud_sambaclient_status=\"%s\";\n", status);
+		websWrite(wp, "cloud_sambaclient_obj=\"%s\";\n", target_obj);
+		websWrite(wp, "cloud_sambaclient_msg=\"%s\";\n", error_msg);
+		websWrite(wp, "cloud_sambaclient_fullcapa=\"%s\";\n", full_capa);
+		websWrite(wp, "cloud_sambaclient_usedcapa=\"%s\";\n", used_capa);
+		websWrite(wp, "cloud_sambaclient_rule_num=\"%s\";\n", rule_num);
+	}
+
+	return 0;
+}
+
 int ej_UI_rs_status(int eid, webs_t wp, int argc, char **argv){
 	FILE *fp = fopen("/tmp/Cloud/log/WebDAV", "r");
 	char line[PATH_MAX], buf[PATH_MAX], dest[PATH_MAX];
@@ -9130,6 +9604,95 @@ ej_bwdpi_device(int eid, webs_t wp, int argc, char_t **argv)
 
 	return retval;
 }
+
+static int
+ej_bwdpi_redirect_page_status(int eid, webs_t wp, int argc, char_t **argv)
+{
+	int retval = 0;
+	char *cat_id;	
+	int catid;
+
+	// get device info of someone.
+	cat_id = websGetVar(wp, "cat_id", "");
+	catid = atoi(cat_id);
+	redirect_page_status(catid, &retval, wp);
+
+	return retval;
+}
+
+static int
+ej_bwdpi_appStat(int eid, webs_t wp, int argc, char_t **argv)
+{
+	char *client, *mode, *dura, *date;
+	int retval = 0;
+	
+	client = websGetVar(wp, "client", "");
+	mode = websGetVar(wp, "mode", "");
+	dura = websGetVar(wp, "dura", "");
+	date = websGetVar(wp, "date", "");
+
+	// 0: app, 1: mac
+	sqlite_Stat_hook(0, client, mode, dura, date, &retval, wp);
+	
+	return retval;
+}
+
+static int
+ej_bwdpi_wanStat(int eid, webs_t wp, int argc, char_t **argv)
+{
+	char *client, *mode, *dura, *date;
+	int retval = 0;
+	
+	client = websGetVar(wp, "client", "");
+	mode = websGetVar(wp, "mode", "");
+	dura = websGetVar(wp, "dura", "");
+	date = websGetVar(wp, "date", "");
+
+	// 0: app, 1: mac
+	sqlite_Stat_hook(1, client, mode, dura, date, &retval, wp);
+	
+	return retval;
+}
+#endif
+
+static int
+ej_wl_nband_info(int eid, webs_t wp, int argc, char_t **argv)
+{
+	int unit = 0, ret = 0, firstRow = 1;;
+	char *band, word[256], *next;
+	char tmp[128], prefix[] = "wlXXXXXXXXXX_";
+	ret += websWrite(wp, "[");
+	foreach (word, nvram_safe_get("wl_ifnames"), next) {
+		if (firstRow == 1)
+			firstRow = 0;
+		else
+			ret += websWrite(wp, ", ");
+
+		snprintf(prefix, sizeof(prefix), "wl%d_", unit);
+		band = nvram_safe_get(strcat_r(prefix, "nband", tmp));
+
+			ret += websWrite(wp, "%s", band);
+
+		unit++;
+	}
+	ret += websWrite(wp, "]");
+	return ret;
+}
+
+#ifdef RTCONFIG_GEOIP
+static int
+ej_geoiplookup(int eid, webs_t wp, int argc, char_t **argv)
+{
+	int unit;
+	char tmp[100], prefix[] = "wanXXXXXXXXXX_";
+	char *wanip;
+
+	unit = wan_primary_ifunit();
+	wan_prefix(unit, prefix);
+	wanip = nvram_safe_get(strcat_r(prefix, "ipaddr", tmp));
+
+	return websWrite(wp, "%s", geoiplookup_by_ip(wanip));
+}
 #endif
 
 struct ej_handler ej_handlers[] = {
@@ -9182,7 +9745,9 @@ struct ej_handler ej_handlers[] = {
 #endif
 //2008.08 magic{
 	{ "update_variables", ej_update_variables},
+#ifdef RTCONFIG_ROG
 	{ "set_variables", ej_set_variables},
+#endif
 	{ "convert_asus_variables", convert_asus_variables},
 	{ "asus_nvram_commit", asus_nvram_commit},
 	{ "notify_services", ej_notify_services},
@@ -9231,6 +9796,7 @@ struct ej_handler ej_handlers[] = {
 	{ "available_disk_names_and_sizes", ej_available_disk_names_and_sizes},
 	{ "get_printer_info", ej_get_printer_info},
 	{ "get_modem_info", ej_get_modem_info},
+	{ "check_modem_sim", ej_check_modem_sim},
 	{ "get_AiDisk_status", ej_get_AiDisk_status},
 	{ "set_AiDisk_status", ej_set_AiDisk_status},
 	{ "get_all_accounts", ej_get_all_accounts},
@@ -9261,6 +9827,9 @@ struct ej_handler ej_handlers[] = {
 //#ifdef RTCONFIG_CLOUDSYNC
 	{ "cloud_status", ej_cloud_status},
 	{ "UI_cloud_status", ej_UI_cloud_status},
+	{ "UI_cloud_dropbox_status", ej_UI_cloud_dropbox_status},
+	{ "UI_cloud_ftpclient_status", ej_UI_cloud_ftpclient_status},
+	{ "UI_cloud_sambaclient_status", ej_UI_cloud_sambaclient_status},
 	{ "UI_rs_status", ej_UI_rs_status},
 	{ "getWebdavInfo", ej_webdavInfo},
 //#endif
@@ -9310,6 +9879,13 @@ struct ej_handler ej_handlers[] = {
 	{ "bwdpi_status", ej_bwdpi_status},
 	{ "bwdpi_history", ej_bwdpi_history},
 	{ "bwdpi_device_info", ej_bwdpi_device},
+	{ "bwdpi_redirect_info", ej_bwdpi_redirect_page_status},
+	{ "bwdpi_appStat", ej_bwdpi_appStat},
+	{ "bwdpi_wanStat", ej_bwdpi_wanStat},
+#endif
+	{ "wl_nband_info", ej_wl_nband_info},
+#ifdef RTCONFIG_GEOIP
+	{ "geoiplookup", ej_geoiplookup},
 #endif
 	{ NULL, NULL }
 };

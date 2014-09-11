@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <html xmlns:v>
 <head>
-<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7"/>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta HTTP-EQUIV="Pragma" CONTENT="no-cache">
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
@@ -713,7 +713,7 @@ function connect_Row(rowdata, flag){
 	if(flag == "disconnect"){
 		if(vpnc_clientlist_col[1] == "OpenVPN"){
 			document.form.vpnc_proto.value = "disable";
-			document.form.vpn_client_unit.value = "";
+			document.form.vpn_client_unit.value = vpnc_clientlist_col[2];
 			document.form.vpn_client1_username.value = "";
 			document.form.vpn_client1_password.value = "";
 			document.form.vpn_clientx_eas.value = "";

@@ -27,6 +27,10 @@ Set Up Environment(Tested in Fedora 8/9 and Ubuntu)
 		autogen
 		mtd-utils
 		intltool
+		libstdc++5
+		texinfo
+		dos2unix
+		xsltproc
 
 	b. Fedora
 		sudo yum groupinstall "Development Tools"

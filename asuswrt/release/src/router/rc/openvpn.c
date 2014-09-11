@@ -1215,8 +1215,6 @@ void start_vpnserver(int serverNum)
 	fclose(fp_client);
 	vpnlog(VPN_LOG_EXTRA,"Done writing client config file");
 
-//eval("taskset", "-c", "1", "smbd", "-D", "-s", "/etc/smb.conf");
-
 #if 0
         if (cpu_num > 1)
 		sprintf(&buffer[0], "taskset -c %d /etc/openvpn/vpnserver%d --cd /etc/openvpn/server%d --config config.ovpn", (serverNum == 2 ? 1 : 0), serverNum, serverNum);

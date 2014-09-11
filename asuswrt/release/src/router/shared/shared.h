@@ -20,6 +20,11 @@
 #define logmessage logmessage_normal
 #endif
 
+#ifdef RTCONFIG_DSL
+#define SYNC_LOG_FILE "/tmp/adsl/sync_status_log.txt"
+#define LOG_RECORD_FILE "/tmp/adsl/log_record.txt"
+#endif
+
 #define Y2K			946684800UL		// seconds since 1970
 
 #define ASIZE(array)	(sizeof(array) / sizeof(array[0]))
@@ -204,6 +209,7 @@ enum {
 	MODEL_RTN14U,
 	MODEL_RTAC52U,
 	MODEL_RTAC51U,
+	MODEL_RTN54U,
 	MODEL_RTN36U3,
 	MODEL_RTN56U,
 	MODEL_RTN65U,

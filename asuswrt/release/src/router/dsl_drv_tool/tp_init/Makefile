@@ -2,6 +2,7 @@ include ../../common.mak
 
 ifeq ($(BUILD_NAME), DSL-N55U)
 CFLAGS += -DDSL_N55U=1
+CFLAGS += -DDSL_N55U_ANNEX_A=1
 endif
 ifeq ($(BUILD_NAME), DSL-N55U-B)
 CFLAGS += -DDSL_N55U=1
@@ -44,6 +45,11 @@ endif
 CFLAGS += -I$(LINUXDIR)/include
 
 LDFLAGS = -L$(TOP)/shared -lshared -L$(TOP)/nvram${BCMEX} -lnvram
+
+ifeq ($(RTCONFIG_DSL_TCLINUX),y)
+LDFLAGS += -lpthread
+endif
+
 INSTALL = install
 
 OBJS = tp_init_main.o tp_msg.o scanner.o respipc.o nvram.o
@@ -52,7 +58,16 @@ ifeq ($(CONFIG_RALINK),y)
 OBJS += ra_reg_rw.o
 endif
 
+ifeq ($(RTCONFIG_DSL_TCLINUX),y)
+OBJS += dumptcc.o
+endif
+
+ifneq ($(wildcard ./prebuild),)
+all:
+	@-cp -f ./prebuild/tp_init .
+else
 all: tp_init
+endif
 
 tp_init: $(OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^

@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml"> 
 <html xmlns:v>
 <head>
-<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7"/>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta HTTP-EQUIV="Pragma" CONTENT="no-cache">
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
@@ -209,9 +209,14 @@ function applyRule(){
 	}else{		//disable server
 			document.form.action_script.value = "stop_vpnd";
 			document.form.pptpd_enable.value = "0";
-			document.form.pptpd_clientlist.disabled = true;
-			document.form.vpn_server_clientlist.disabled = true;	
-
+			if(document.getElementById("PPTP_setting").style.display == ""){
+				document.form.pptpd_clientlist.value = get_group_value("pptpd");
+				document.form.vpn_server_clientlist.disabled = true;
+			}
+			if(document.getElementById("OpenVPN_setting").style.display == ""){	
+				document.form.vpn_server_clientlist.value = get_group_value("openvpnd");
+				document.form.pptpd_clientlist.disabled = true;
+			}	
 	}	
 	
 	showLoading();
@@ -630,9 +635,30 @@ $j.ajax({
     		},
 
     		success: function(){
-      			if(vpnd_state != '2'){
+    				if(vpnd_state != '2' && (vpn_server1_errno == '1' || vpn_server1_errno == '2')){
+    						document.getElementById('openvpn_initial').style.display = "none";    						
+      					document.getElementById('openvpn_error_message').innerHTML = "<span>Routing conflict! <p>Please check your IP address configuration of client profile on advanced setting page or check routing table on system log.</span>";
+      					document.getElementById('openvpn_error_message').style.display = "";
+      			}
+      			else if(vpnd_state != '2' && vpn_server1_errno == '4'){
+      					document.getElementById('openvpn_initial').style.display = "none";
+      					document.getElementById('openvpn_error_message').innerHTML = "<span>Certification Auth. /Server cert. /Server Key field error! <p>Please check your contents of Keys&Certification on advanced setting page.</span>";
+      					document.getElementById('openvpn_error_message').style.display = "";
+      			}
+      			else if(vpnd_state != '2' && vpn_server1_errno == '5'){
+      					document.getElementById('openvpn_initial').style.display = "none";
+      					document.getElementById('openvpn_error_message').innerHTML = "<span>Diffle Hellman parameters field error!  <p>Please check your contents of Keys&Certification on advanced setting page.</span>";
+      					document.getElementById('openvpn_error_message').style.display = "";
+      			}
+      			else if(vpnd_state == '-1' && vpn_server1_errno == '0'){
+      					document.getElementById('openvpn_initial').style.display = "none";
+      					document.getElementById('openvpn_error_message').innerHTML = "<span>OpenVPN server daemon start fail!  <p>Please check your device environment or contents on advanced setting page.</span>";
+      					document.getElementById('openvpn_error_message').style.display = "";
+      			}
+      			else if(vpnd_state != '2'){
       					setTimeout("update_vpn_server_state();", 1000);
-      			}else{	// OpenVPN server ready , vpn_server1_state==2
+      			}
+      			else{	// OpenVPN server ready , vpn_server1_state==2
       					setTimeout("location.href='Advanced_VPN_Content.asp';", 1000);
       					return;
 						}
@@ -788,6 +814,8 @@ function switchPage(page){
               												 <img id="initialing" src="images/InternetScan.gif" />
               											</span>              											
               									</div>
+              									<div id="openvpn_error_message" style="display:none;margin-left:5px;">              											
+              									</div>	
             								</td>
           								</tr>
 									</table>									
@@ -974,7 +1002,7 @@ function switchPage(page){
 							<option value="smtp.gmail.com" <% nvram_match( "PM_SMTP_SERVER", "smtp.gmail.com", "selected"); %>>Google Gmail</option>
 				    </select>
 						<script>
-							var smtpServer = new Array()
+							var smtpList = new Array()
 							smtpList = [
 								{smtpServer: "smtp.gmail.com", smtpPort: "587", smtpDomain: "gmail.com"},
 								{end: 0}
@@ -1006,7 +1034,7 @@ function switchPage(page){
 				<tr>
 					<th>PM_SMTP_AUTH_PASS</th>
 					<td valign="top">
-						<input type="password" class="input_32_table" name="PM_SMTP_AUTH_PASS_TMP" value="<% nvram_get("PM_SMTP_AUTH_PASS"); %>">
+						<input type="password" class="input_32_table" name="PM_SMTP_AUTH_PASS_TMP" maxlength="100" value="">
 					</td>
 				</tr>    				      			
 				<tr>

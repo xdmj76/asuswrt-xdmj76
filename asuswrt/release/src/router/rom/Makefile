@@ -1,18 +1,10 @@
 include ../common.mak
 include $(SRCBASE)/.config
 
-ifneq ($(findstring DSL,$(BUILD_NAME)),)
-MODEL = $(subst -,_,$(BUILD_NAME))
-else
-MODEL = $(subst -,,$(BUILD_NAME))
-endif
-
-export CFLAGS += -D$(MODEL)
-
 ifeq ($(RTCONFIG_BCMARM),y)
 	pkg_type=arm
-	DM_VERSION=3.1.0.78
-	HTTP_VERSION=3.1.0.71
+	DM_VERSION=3.1.0.93
+	HTTP_VERSION=3.1.0.86
 else
 	pkg_type=mipsel
 	DM_VERSION=3.1.0.78
@@ -45,6 +37,7 @@ endif
 	-install -m 0644 packages/expat_*_$(pkg_type).ipk $(INSTALLDIR)/rom
 	install -m 0644 packages/asus_base_apps_$(pkg_type).tgz $(INSTALLDIR)/rom # Don't need if installing from Internet.
 	-install -m 0644 packages/downloadmaster_$(DM_VERSION)_$(pkg_type).ipk $(INSTALLDIR)/rom
+	-install -m 0644 packages/bzip2_*_$(pkg_type).ipk $(INSTALLDIR)/rom
 ifneq ($(HTTP_VERSION),)
 	-install -m 0644 packages/asuslighttpd_$(HTTP_VERSION)_$(pkg_type).ipk $(INSTALLDIR)/rom
 endif
@@ -70,9 +63,23 @@ endif
 ifeq ($(RTCONFIG_AUTOLIVEUPDATE_ZIP),y)
 	cp -f webs_scripts/zip_webs_upgrade.sh $(INSTALLDIR)/usr/sbin/webs_upgrade.sh
 	cp -f webs_scripts/zip_webs_update.sh $(INSTALLDIR)/usr/sbin/webs_update.sh
+ifeq ($(RTCONFIG_BWDPI),y)
+	cp -f webs_scripts/sig_upgrade.sh $(INSTALLDIR)/usr/sbin/sig_upgrade.sh
+	cp -f webs_scripts/sig_update.sh $(INSTALLDIR)/usr/sbin/sig_update.sh
+endif
+ifeq ($(RTCONFIG_HTTPS),y)
+	cp -f webs_scripts/public.pem $(INSTALLDIR)/usr/sbin/public.pem
+endif
 else
 	cp -f webs_scripts/nozip_webs_upgrade.sh $(INSTALLDIR)/usr/sbin/webs_upgrade.sh
 	cp -f webs_scripts/nozip_webs_update.sh $(INSTALLDIR)/usr/sbin/webs_update.sh
+ifeq ($(RTCONFIG_BWDPI),y)
+	cp -f webs_scripts/sig_upgrade.sh $(INSTALLDIR)/usr/sbin/sig_upgrade.sh
+	cp -f webs_scripts/sig_update.sh $(INSTALLDIR)/usr/sbin/sig_update.sh
+endif
+ifeq ($(RTCONFIG_HTTPS),y)
+	cp -f webs_scripts/public.pem $(INSTALLDIR)/usr/sbin/public.pem
+endif
 endif
 
 ifeq ($(RTCONFIG_USB),y)
@@ -92,6 +99,8 @@ endif
 
 ifeq ($(RTCONFIG_DUALWAN),y)
 	cp -rf rom/etc/static_routes $(INSTALLDIR)/rom/etc/
+else
+	rm -rf $(INSTALLDIR)/rom/etc/static_routes
 endif
 
 ifeq ($(RTCONFIG_RALINK_RT3883),y)

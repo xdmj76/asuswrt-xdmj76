@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml"> 
 <html xmlns:v>
 <head>
-<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7"/>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta HTTP-EQUIV="Pragma" CONTENT="no-cache">
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
@@ -261,7 +261,9 @@ function update_visibility(){
 	showhide("server_snnm", ((auth == "tls") && (iface == "tun")));
 	showhide("server_plan", ((auth == "tls") && (iface == "tun")));
 	showhide("server_local", ((auth == "secret") && (iface == "tun")));
+	showhide("server_reneg", (auth != "secret"));		//add by Viz 2014.06
 	showhide("server_ccd", (auth == "tls"));
+	
 
 	showhide("server_c2c", ccd);
 	showhide("server_ccd_excl", ccd);
@@ -274,6 +276,7 @@ function update_visibility(){
 	showhide("server_tls_crypto_text", (auth == "tls"));		//add by Viz
 	showhide("server_static_crypto_text", (auth == "secret"));		//add by Viz
 	showhide("server_custom_crypto_text", (auth == "custom"));
+	
 }
 
 function del_openvpnRow(r){
@@ -557,6 +560,10 @@ function openvpn_applyRule(){
 	var client_num = $('openvpn_clientlist_table').rows.length;
 	var item_num = $('openvpn_clientlist_table').rows[0].cells.length;
 	var tmp_value = "";
+	
+	//Viz add 2014.06
+	if(document.getElementById("server_reneg").style.display == "none")
+			document.openvpn_form.vpn_server_reneg.disabled = true;
 
 	for(i=0; i<client_num; i++){
 
@@ -1376,7 +1383,7 @@ function cal_panel_block(){
 			   							</td>
 									</tr>
 
-									<tr>
+									<tr id="server_reneg">
 										<th><#vpn_openvpn_TLSTime#><br><i>( <#MinusOne_default#> )</th>
 										<td>
 											<input type="text" maxlength="5" class="input_6_table" name="vpn_server_reneg" onblur="validate_range(this, -1, 2147483647)" value="<% nvram_get("vpn_server_reneg"); %>"> <#Second#>

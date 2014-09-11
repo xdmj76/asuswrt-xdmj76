@@ -692,6 +692,28 @@ xdr_qcsapi_wifi_get_scs_currchan_report_response (XDR *xdrs, qcsapi_wifi_get_scs
 }
 
 bool_t
+xdr_qcsapi_wifi_set_scs_stats_request (XDR *xdrs, qcsapi_wifi_set_scs_stats_request *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_str (xdrs, &objp->ifname))
+		 return FALSE;
+	 if (!xdr_u_int (xdrs, &objp->start))
+		 return FALSE;
+	return TRUE;
+}
+
+bool_t
+xdr_qcsapi_wifi_set_scs_stats_response (XDR *xdrs, qcsapi_wifi_set_scs_stats_response *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_int (xdrs, &objp->return_code))
+		 return FALSE;
+	return TRUE;
+}
+
+bool_t
 xdr_qcsapi_wifi_get_autochan_report_request (XDR *xdrs, qcsapi_wifi_get_autochan_report_request *objp)
 {
 	register int32_t *buf;
@@ -3566,6 +3588,94 @@ xdr_qcsapi_wifi_set_ap_isolate_response (XDR *xdrs, qcsapi_wifi_set_ap_isolate_r
 }
 
 bool_t
+xdr_qcsapi_wifi_get_intra_bss_isolate_request (XDR *xdrs, qcsapi_wifi_get_intra_bss_isolate_request *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_str (xdrs, &objp->ifname))
+		 return FALSE;
+	return TRUE;
+}
+
+bool_t
+xdr_qcsapi_wifi_get_intra_bss_isolate_response (XDR *xdrs, qcsapi_wifi_get_intra_bss_isolate_response *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_int (xdrs, &objp->return_code))
+		 return FALSE;
+	 if (!xdr_u_int (xdrs, &objp->p_ap_isolate))
+		 return FALSE;
+	return TRUE;
+}
+
+bool_t
+xdr_qcsapi_wifi_set_intra_bss_isolate_request (XDR *xdrs, qcsapi_wifi_set_intra_bss_isolate_request *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_str (xdrs, &objp->ifname))
+		 return FALSE;
+	 if (!xdr_u_int (xdrs, &objp->new_ap_isolate))
+		 return FALSE;
+	return TRUE;
+}
+
+bool_t
+xdr_qcsapi_wifi_set_intra_bss_isolate_response (XDR *xdrs, qcsapi_wifi_set_intra_bss_isolate_response *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_int (xdrs, &objp->return_code))
+		 return FALSE;
+	return TRUE;
+}
+
+bool_t
+xdr_qcsapi_wifi_get_bss_isolate_request (XDR *xdrs, qcsapi_wifi_get_bss_isolate_request *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_str (xdrs, &objp->ifname))
+		 return FALSE;
+	return TRUE;
+}
+
+bool_t
+xdr_qcsapi_wifi_get_bss_isolate_response (XDR *xdrs, qcsapi_wifi_get_bss_isolate_response *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_int (xdrs, &objp->return_code))
+		 return FALSE;
+	 if (!xdr_u_int (xdrs, &objp->p_ap_isolate))
+		 return FALSE;
+	return TRUE;
+}
+
+bool_t
+xdr_qcsapi_wifi_set_bss_isolate_request (XDR *xdrs, qcsapi_wifi_set_bss_isolate_request *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_str (xdrs, &objp->ifname))
+		 return FALSE;
+	 if (!xdr_u_int (xdrs, &objp->new_ap_isolate))
+		 return FALSE;
+	return TRUE;
+}
+
+bool_t
+xdr_qcsapi_wifi_set_bss_isolate_response (XDR *xdrs, qcsapi_wifi_set_bss_isolate_response *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_int (xdrs, &objp->return_code))
+		 return FALSE;
+	return TRUE;
+}
+
+bool_t
 xdr_qcsapi_wifi_create_restricted_bss_request (XDR *xdrs, qcsapi_wifi_create_restricted_bss_request *objp)
 {
 	register int32_t *buf;
@@ -4735,6 +4845,30 @@ xdr_qcsapi_wifi_set_option_response (XDR *xdrs, qcsapi_wifi_set_option_response 
 	register int32_t *buf;
 
 	 if (!xdr_int (xdrs, &objp->return_code))
+		 return FALSE;
+	return TRUE;
+}
+
+bool_t
+xdr_qcsapi_get_board_parameter_request (XDR *xdrs, qcsapi_get_board_parameter_request *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_int (xdrs, &objp->board_param))
+		 return FALSE;
+	 if (!xdr_int (xdrs, &objp->buf_len))
+		 return FALSE;
+	return TRUE;
+}
+
+bool_t
+xdr_qcsapi_get_board_parameter_response (XDR *xdrs, qcsapi_get_board_parameter_response *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_int (xdrs, &objp->return_code))
+		 return FALSE;
+	 if (!xdr_str (xdrs, &objp->p_buffer))
 		 return FALSE;
 	return TRUE;
 }
@@ -9401,6 +9535,28 @@ xdr_qcsapi_wifi_get_nss_cap_response (XDR *xdrs, qcsapi_wifi_get_nss_cap_respons
 	 if (!xdr_int (xdrs, &objp->return_code))
 		 return FALSE;
 	 if (!xdr_u_int (xdrs, &objp->nss))
+		 return FALSE;
+	return TRUE;
+}
+
+bool_t
+xdr_qcsapi_wifi_get_disassoc_reason_request (XDR *xdrs, qcsapi_wifi_get_disassoc_reason_request *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_str (xdrs, &objp->ifname))
+		 return FALSE;
+	return TRUE;
+}
+
+bool_t
+xdr_qcsapi_wifi_get_disassoc_reason_response (XDR *xdrs, qcsapi_wifi_get_disassoc_reason_response *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_int (xdrs, &objp->return_code))
+		 return FALSE;
+	 if (!xdr_u_int (xdrs, &objp->reason))
 		 return FALSE;
 	return TRUE;
 }

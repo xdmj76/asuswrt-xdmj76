@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <html xmlns:v>
 <head>
-<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7"/>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta HTTP-EQUIV="Pragma" CONTENT="no-cache">
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
@@ -104,7 +104,7 @@ function initial(){
 	}
 	//}Viz 2011.10
 	showdhcp_staticlist();
-	showLANIPList();
+	setTimeout("showLANIPList();", 1000);
 	
 	if(pptpd_support){	 
 		var chk_vpn = check_vpn();
@@ -289,7 +289,7 @@ function validate_dhcp_range(ip_obj){
 
 function validForm(){	
 	var re = new RegExp('^[a-zA-Z0-9][a-zA-Z0-9\.\-]*[a-zA-Z0-9]$','gi');
-  if(!re.test(document.form.lan_domain.value) && document.form.lan_domain.value != ""){
+	if((!re.test(document.form.lan_domain.value) || document.form.lan_domain.value.indexOf("asuscomm.com") > 0) && document.form.lan_domain.value != ""){
       alert("<#JS_validchar#>");                
       document.form.lan_domain.focus();
       document.form.lan_domain.select();

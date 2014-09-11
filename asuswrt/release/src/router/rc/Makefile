@@ -25,14 +25,6 @@ endif
 
 include $(SRCBASE)/.config
 
-ifneq ($(findstring DSL,$(BUILD_NAME)),)
-MODEL = $(subst -,_,$(BUILD_NAME))
-else
-MODEL = $(subst -,,$(BUILD_NAME))
-endif
-
-export CFLAGS += -D$(MODEL)
-
 
 LDFLAGS = -L$(TOP)/nvram${BCMEX} -lnvram -L$(TOP)/shared -lshared -lcrypt -L$(TOP)/libbcmcrypto -lbcmcrypto
 
@@ -42,9 +34,14 @@ CFLAGS += -I$(SRCBASE)/common/include
 LDFLAGS += -L$(TOP)/libbcm -lbcm
 LDFLAGS += -lgcc_s
 ifeq ($(RTCONFIG_QTN),y)
-CFLAGS += -I$(TOP)/libqcsapi_client -I$(TOP)/httpd
+CFLAGS += -I$(TOP)/libqcsapi_client -I$(TOP)/shared/sysdeps/qtn
 LDFLAGS += -L$(TOP)/libqcsapi_client -lqcsapi_client
 endif
+endif
+
+ifeq ($(RTCONFIG_HTTPS),y)
+CFLAGS += -I$(TOP)/openssl/include/openssl
+LDFLAGS += -L$(TOP)/openssl -lcrypto -lssl
 endif
 
 ifeq ($(RTCONFIG_BWDPI),y)
@@ -172,6 +169,9 @@ ifeq ($(RTCONFIG_ACCEL_PPTPD),y)
 OBJS += vpn.o
 endif
 
+ifeq ($(RTCONFIG_SNMPD),y)
+OBJS += snmpd.o
+endif
 ifeq ($(RTCONFIG_OPENVPN),y)
 CFLAGS += -DRTCONFIG_CROND
 OBJS += openvpn.o
@@ -190,7 +190,10 @@ OBJS += dsl.o
 ifeq ($(RTCONFIG_RALINK),y)
 OBJS += dsl-upg.o
 endif
+ifeq ($(RTCONFIG_DSL_TCLINUX),y)
 OBJS += dsl_fb.o
+OBJS += dsl_diag.o
+endif
 endif
 
 ifeq ($(RTCONFIG_BCMWL6),y)
@@ -223,7 +226,6 @@ ifeq ($(RTCONFIG_QTN),y)
 OBJS += qtn.o
 OBJS += find_host_addr.o
 OBJS += qtn_monitor.o
-OBJS += web-qtn.o
 endif
 
 ifeq ($(RTCONFIG_BWDPI),y)
@@ -241,9 +243,13 @@ ifeq ($(RTCONFIG_IPERF),y)
 OBJS += monitor.o
 endif
 
+ifeq ($(RTCONFIG_HTTPS),y)
+OBJS += pwdec.o
+endif
+
 ifeq ($(RTCONFIG_BCMARM),y)
 ifeq ($(RTCONFIG_QTN),y)
-vpath %.c sysdeps sysdeps/broadcom sysdeps/ralink sysdeps/qtn $(TOP)/libqcsapi_client/qcsapi_rpc_common/client $(TOP)/httpd/sysdeps $(SRCBASE)/shared
+vpath %.c sysdeps sysdeps/broadcom sysdeps/ralink sysdeps/qtn $(TOP)/libqcsapi_client/qcsapi_rpc_common/client $(TOP)/sysdeps/qtn $(SRCBASE)/shared
 else
 vpath %.c sysdeps sysdeps/broadcom sysdeps/ralink $(SRCBASE)/shared
 endif
@@ -315,9 +321,6 @@ endif
 
 #	@cd $(INSTALLDIR)/sbin && ln -sf rc wldist
 
-ifeq ($(RTCONFIG_IPV6),y)
-	@cd $(INSTALLDIR)/sbin && ln -sf rc dhcp6c-state
-endif
 ifeq ($(RTCONFIG_WPS),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc wpsaide
 endif
@@ -379,6 +382,9 @@ ifeq ($(RTCONFIG_DSL),y)
 endif
 endif
 	@cd $(INSTALLDIR)/sbin && ln -sf rc run_telnetd 
+ifeq ($(RTCONFIG_SSH),y)
+	@cd $(INSTALLDIR)/sbin && ln -sf rc run_sshd
+endif
 	@cd $(INSTALLDIR)/sbin && ln -sf rc run_pptpd
 ifeq ($(RTCONFIG_PARENTALCTRL),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc pc
@@ -395,8 +401,12 @@ endif
 	@cd $(INSTALLDIR)/sbin && ln -sf rc get_phy_status
 	@cd $(INSTALLDIR)/sbin && ln -sf rc get_phy_speed
 	@cd $(INSTALLDIR)/sbin && ln -sf rc firmware_check
+ifeq ($(RTCONFIG_HTTPS),y)
+	@cd $(INSTALLDIR)/sbin && ln -sf rc rsasign_check
+endif
 	@cd $(INSTALLDIR)/sbin && ln -sf rc test_endian
 ifeq ($(RTCONFIG_BWDPI),y)
+	@cd $(INSTALLDIR)/sbin && ln -sf rc rsasign_sig_check
 	@cd $(INSTALLDIR)/sbin && ln -sf rc speedtest
 	@cd $(INSTALLDIR)/sbin && ln -sf rc bwdpi
 	@cd $(INSTALLDIR)/sbin && ln -sf rc bwdpi_monitor
@@ -417,6 +427,31 @@ clean:
 
 size: rc
 	mipsel-uclibc-nm --print-size --size-sort rc
+
+# handle prebuilt object here
+ifneq ($(wildcard ./prebuild),)
+ifeq ($(RTCONFIG_DSL),y)
+ifeq ($(RTCONFIG_DSL_TCLINUX),y)
+dsl_fb.o:
+	@-cp -f ./prebuild/dsl_fb.o .
+dsl_diag.o:
+	@-cp -f ./prebuild/dsl_diag.o .
+endif
+endif
+ifeq ($(RTCONFIG_HTTPS),y)
+pwdec.o:
+	@-cp -f ./prebuild/pwdec.o .
+endif
+else
+ifeq ($(RTCONFIG_HTTPS),y)
+dsl_fb.o:dsl_fb.c
+	@echo "encrypt dsl password"
+	./dsl_fb_enc.sh
+	$(CC) $(CFLAGS) -c dsl_fb.c
+	@echo "decrypt dsl password"
+	./dsl_fb_dec.sh
+endif
+endif
 
 %.o: %.c
 	@echo " [rc] CC $@"

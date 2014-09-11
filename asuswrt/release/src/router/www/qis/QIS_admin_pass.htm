@@ -35,11 +35,15 @@ for(var i=0; i<accounts.length; i++){
 
 function QKinternettype_load_body(){
 
-	if(tmo_support){
+	if(tmo_support){			
 			document.getElementById("skip_btn").style.display = "";
 			document.getElementById("prev_btn").style.display = "none";
 			document.getElementById("pass_Desc1").innerHTML = "For security purposes, you MUST change your login username/password before continuing.";
+			document.getElementById("tmo_desc4").style.display = "";
 	}
+	else{
+			document.getElementById("general_desc4").style.display = "";
+	}		
 	
 	if(parent.ISMOBILE){
 		parent.document.title = "<#Web_Title2#>";
@@ -62,8 +66,9 @@ function QKinternettype_load_body(){
 		if (dsl_support) {
 			document.getElementById("prev_btn").style.display = "none";
 			var detect_status = '<% nvram_get("dsltmp_autodet_state"); %>';	
-			if ( (detect_status == "Detecting") || (detect_status == "wait_for_init") || (detect_status == "init") ||
-				(detect_status == "initializing") ||(detect_status == "up") || (detect_status == "down")) {
+			if ( (detect_status == "Detecting") || (detect_status == "wait_for_init") || 
+				(detect_status == "init") || (detect_status == "initializing") || 
+				(detect_status == "up") || (detect_status == "wait") || (detect_status == "down")) {
 				document.form.next_page.value = "/qis/QIS_detect.htm";
 			}
 			else if ( (detect_status == "pppoe") || (detect_status == "pppoa") ) { //1:PPPoE, 2:PPPoA
@@ -197,7 +202,7 @@ function submitForm(){
 
 	if(document.form.http_passwd.value == 'admin' && parent.based_modelid == "RT-AC87U"){
 		if(http_passwd_flag == 0){
-			alert('This is default setting. We strongly recommend you to change to avoid security risks.');
+			alert('The new password is the same as system default password. We strongly recommend that you set a more complex password.');
 			document.form.http_passwd.focus();
 			document.form.http_passwd.select();
 			http_passwd_flag = 1;
@@ -205,7 +210,7 @@ function submitForm(){
 			return false;
 		}
 		else{
-			if(!confirm('Confirming this default setting (admin/admin) may be a security risk.')){
+			if(!confirm('If you do not change the default password (admin), your router is vulnerable to security threats and others can easily guess the login password. Are you sure to keep this unsafe password?')){
 				document.form.http_passwd.focus();
 				document.form.http_passwd.select();
 				changeiuiBackground(0);
@@ -379,7 +384,7 @@ function clean_scorebar(obj){
 	<div id="adminPassDesc" class="QISTutorFont_admin_pass" style="height:200px;margin-left:-10px;">
 		<ul>
 			<li><#QIS_pass_desc3#>
-			<li><#QIS_pass_desc4#>
+			<li><div id="general_desc4" style="display:none;"><#QIS_pass_desc4#></div><div id="tmo_desc4" style="display:none;"><#QIS_pass_desc4_tmo#></div>
 			<li><#QIS_pass_desc5#>&nbsp;<% nvram_default_get("http_username"); %>&nbsp;/&nbsp;<% nvram_default_get("http_passwd"); %>
 		</ul>
 	</div>
